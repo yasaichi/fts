@@ -3,16 +3,16 @@ import {
   transformFromAstSync,
   types,
   type PluginItem,
-} from "@babel/core";
-import pipelineOperatorPlugin from "@babel/plugin-proposal-pipeline-operator";
+} from '@babel/core';
+import pipelineOperatorPlugin from '@babel/plugin-proposal-pipeline-operator';
 import {
   decodedMappings,
   TraceMap,
   type EncodedSourceMap,
-} from "@jridgewell/trace-mapping";
-import type { CodeMapping } from "@volar/language-core";
+} from '@jridgewell/trace-mapping';
+import type { CodeMapping } from '@volar/language-core';
 
-import { pipelineFeature } from "../features/pipeline/config.js";
+import { pipelineFeature } from '../features/pipeline/config.js';
 
 const codeInformation = {
   completion: true,
@@ -54,7 +54,7 @@ export function createIdentityLowering(source: string): LoweredTypeScript {
 
 export function lowerPipeline(
   source: string,
-  fileName = "source.fts",
+  fileName = 'source.fts',
 ): LoweredTypeScript {
   const ast = parseSync(source, {
     babelrc: false,
@@ -63,15 +63,15 @@ export function lowerPipeline(
     parserOpts: {
       plugins: [
         [
-          "pipelineOperator",
+          'pipelineOperator',
           {
             proposal: pipelineFeature.proposal,
             topicToken: pipelineFeature.topicToken,
           },
         ],
-        "typescript",
+        'typescript',
       ],
-      sourceType: "unambiguous",
+      sourceType: 'unambiguous',
     },
   });
 
@@ -171,9 +171,8 @@ function addTopicReferenceMappings(
         })),
       )
       .filter((range) => range.end > range.start)
-      .sort(
-        (left, right) =>
-          left.end - left.start - (right.end - right.start),
+      .toSorted(
+        (left, right) => left.end - left.start - (right.end - right.start),
       )[0];
 
     if (!generatedRange) {
@@ -213,10 +212,8 @@ function createCodeMappings(
         return;
       }
 
-      const generatedOffset =
-        generatedLineOffsets[generatedLine]! + segment[0];
-      const sourceOffset =
-        sourceLineOffsets[sourceLine]! + sourceColumn;
+      const generatedOffset = generatedLineOffsets[generatedLine]! + segment[0];
+      const sourceOffset = sourceLineOffsets[sourceLine]! + sourceColumn;
       const nextSegment = segments[segmentIndex + 1];
       const generatedLimit = nextSegment
         ? generatedLineOffsets[generatedLine]! + nextSegment[0]
@@ -232,11 +229,17 @@ function createCodeMappings(
           : lineEndOffset(source, sourceOffset);
       const generatedLength = Math.max(
         1,
-        Math.min(tokenLengthAt(generated, generatedOffset), generatedLimit - generatedOffset),
+        Math.min(
+          tokenLengthAt(generated, generatedOffset),
+          generatedLimit - generatedOffset,
+        ),
       );
       const sourceLength = Math.max(
         1,
-        Math.min(tokenLengthAt(source, sourceOffset), sourceLimit - sourceOffset),
+        Math.min(
+          tokenLengthAt(source, sourceOffset),
+          sourceLimit - sourceOffset,
+        ),
       );
       const touchesTopicReference = topicReferenceRanges.some(
         (topicRange) =>
@@ -245,9 +248,7 @@ function createCodeMappings(
       );
 
       mappings.push({
-        data: touchesTopicReference
-          ? noCodeInformation
-          : codeInformation,
+        data: touchesTopicReference ? noCodeInformation : codeInformation,
         generatedLengths: [generatedLength],
         generatedOffsets: [generatedOffset],
         lengths: [sourceLength],
@@ -271,9 +272,9 @@ function collectTopicReferenceRanges(ast: types.Node): SourceRange[] {
 
   types.traverseFast(ast, (node) => {
     if (
-      node.type === "TopicReference" &&
-      typeof node.start === "number" &&
-      typeof node.end === "number"
+      node.type === 'TopicReference' &&
+      typeof node.start === 'number' &&
+      typeof node.end === 'number'
     ) {
       ranges.push({ end: node.end, start: node.start });
     }
@@ -285,7 +286,7 @@ function collectTopicReferenceRanges(ast: types.Node): SourceRange[] {
 function createLineOffsets(text: string): number[] {
   const offsets = [0];
   for (let index = 0; index < text.length; index += 1) {
-    if (text[index] === "\n") {
+    if (text[index] === '\n') {
       offsets.push(index + 1);
     }
   }
@@ -293,7 +294,7 @@ function createLineOffsets(text: string): number[] {
 }
 
 function lineEndOffset(text: string, offset: number): number {
-  const newline = text.indexOf("\n", offset);
+  const newline = text.indexOf('\n', offset);
   return newline === -1 ? text.length : newline;
 }
 
@@ -306,7 +307,7 @@ function tokenLengthAt(text: string, offset: number): number {
 
   const whitespace = /^\s+/.exec(rest);
   if (whitespace) {
-    return whitespace[0].replace(/\n[\s\S]*$/, "").length || 1;
+    return whitespace[0].replace(/\n[\s\S]*$/, '').length || 1;
   }
 
   return rest.length > 0 ? 1 : 0;

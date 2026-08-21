@@ -2,18 +2,18 @@ import type {
   IScriptSnapshot,
   LanguagePlugin,
   VirtualCode,
-} from "@volar/language-core";
-import type {} from "@volar/typescript";
-import type * as ts from "typescript";
-import type { URI } from "vscode-uri";
+} from '@volar/language-core';
+import type { TypeScriptServiceScript } from '@volar/typescript';
+import type * as ts from 'typescript';
+import type { URI } from 'vscode-uri';
 
 import {
   createIdentityLowering,
   lowerPipeline,
   type LoweredTypeScript,
-} from "./lower-pipeline.js";
+} from './lower-pipeline.js';
 
-export const futureTypeScriptLanguageId = "future-typescript";
+export const futureTypeScriptLanguageId = 'future-typescript';
 
 export function createFutureTypeScriptLanguagePlugin(
   typescript: typeof ts,
@@ -26,7 +26,7 @@ export function createFutureTypeScriptLanguagePlugin(
       return new FutureTypeScriptVirtualCode(typescript, uri, snapshot);
     },
     getLanguageId(uri) {
-      if (uri.path.endsWith(".fts")) {
+      if (uri.path.endsWith('.fts')) {
         return futureTypeScriptLanguageId;
       }
       return undefined;
@@ -34,15 +34,15 @@ export function createFutureTypeScriptLanguagePlugin(
     typescript: {
       extraFileExtensions: [
         {
-          extension: "fts",
+          extension: 'fts',
           isMixedContent: true,
           scriptKind: typescript.ScriptKind.TS,
         },
       ],
-      getServiceScript(root) {
+      getServiceScript(root): TypeScriptServiceScript {
         return {
           code: root,
-          extension: ".ts",
+          extension: '.ts',
           preventLeadingOffset: true,
           scriptKind: typescript.ScriptKind.TS,
         };
@@ -57,9 +57,9 @@ export function createFutureTypeScriptLanguagePlugin(
 
 export class FutureTypeScriptVirtualCode implements VirtualCode {
   public readonly embeddedCodes: VirtualCode[] = [];
-  public readonly id = "typescript";
-  public readonly languageId = "typescript";
-  public mappings: VirtualCode["mappings"] = [];
+  public readonly id = 'typescript';
+  public readonly languageId = 'typescript';
+  public mappings: VirtualCode['mappings'] = [];
   public snapshot: IScriptSnapshot;
 
   public constructor(
@@ -85,5 +85,5 @@ export class FutureTypeScriptVirtualCode implements VirtualCode {
 }
 
 function isFutureTypeScript(uri: URI, languageId: string): boolean {
-  return languageId === futureTypeScriptLanguageId || uri.path.endsWith(".fts");
+  return languageId === futureTypeScriptLanguageId || uri.path.endsWith('.fts');
 }

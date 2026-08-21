@@ -2,11 +2,11 @@ import {
   createConnection,
   createServer,
   createTypeScriptProject,
-} from "@volar/language-server/node.js";
-import * as typescript from "typescript";
-import { create as createTypeScriptServicePlugins } from "volar-service-typescript";
+} from '@volar/language-server/node.js';
+import * as typescript from 'typescript';
+import { create as createTypeScriptServicePlugins } from 'volar-service-typescript';
 
-import { createFutureTypeScriptLanguagePlugin } from "./language/plugin.js";
+import { createFutureTypeScriptLanguagePlugin } from './language/plugin.js';
 
 const connection = createConnection();
 const server = createServer(connection);

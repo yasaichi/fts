@@ -1,23 +1,25 @@
-import * as path from "node:path";
+import * as path from 'node:path';
 
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 import {
   LanguageClient,
   TransportKind,
   type LanguageClientOptions,
   type ServerOptions,
-} from "vscode-languageclient/node";
+} from 'vscode-languageclient/node';
 
-import { futureTypeScriptLanguageId } from "./language/plugin.js";
+import { futureTypeScriptLanguageId } from './language/plugin.js';
 
 let client: LanguageClient | undefined;
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const serverModule = context.asAbsolutePath(path.join("dist", "server.cjs"));
+export async function activate(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const serverModule = context.asAbsolutePath(path.join('dist', 'server.cjs'));
   const serverOptions: ServerOptions = {
     debug: {
       module: serverModule,
-      options: { execArgv: ["--nolazy", "--inspect=6009"] },
+      options: { execArgv: ['--nolazy', '--inspect=6009'] },
       transport: TransportKind.ipc,
     },
     run: {
@@ -29,17 +31,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     documentSelector: [
       {
         language: futureTypeScriptLanguageId,
-        scheme: "file",
+        scheme: 'file',
       },
     ],
     synchronize: {
-      fileEvents: vscode.workspace.createFileSystemWatcher("**/*.fts"),
+      fileEvents: vscode.workspace.createFileSystemWatcher('**/*.fts'),
     },
   };
 
   client = new LanguageClient(
-    "future-typescript-language-server",
-    "Future TypeScript Language Server",
+    'future-typescript-language-server',
+    'Future TypeScript Language Server',
     serverOptions,
     clientOptions,
   );
