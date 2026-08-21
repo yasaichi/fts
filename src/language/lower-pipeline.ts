@@ -1,4 +1,9 @@
-import { transformSync, types, type PluginItem } from "@babel/core";
+import {
+  parseSync,
+  transformFromAstSync,
+  types,
+  type PluginItem,
+} from "@babel/core";
 import pipelineOperatorPlugin from "@babel/plugin-proposal-pipeline-operator";
 import {
   decodedMappings,
@@ -51,16 +56,37 @@ export function lowerPipeline(
   source: string,
   fileName = "source.fts",
 ): LoweredTypeScript {
-  const result = transformSync(source, {
-    ast: false,
+  const ast = parseSync(source, {
     babelrc: false,
-    comments: true,
     configFile: false,
     filename: fileName,
     parserOpts: {
-      plugins: ["typescript"],
+      plugins: [
+        [
+          "pipelineOperator",
+          {
+            proposal: pipelineFeature.proposal,
+            topicToken: pipelineFeature.topicToken,
+          },
+        ],
+        "typescript",
+      ],
       sourceType: "unambiguous",
     },
+  });
+
+  if (!ast) {
+    throw new Error(`Babel did not produce an AST for ${fileName}`);
+  }
+
+  const topicReferenceRanges = collectTopicReferenceRanges(ast);
+  const result = transformFromAstSync(ast, source, {
+    ast: false,
+    babelrc: false,
+    cloneInputAst: false,
+    comments: true,
+    configFile: false,
+    filename: fileName,
     plugins: [
       [
         pipelineOperatorPlugin,
@@ -84,7 +110,7 @@ export function lowerPipeline(
       source,
       result.code,
       result.map as unknown as EncodedSourceMap,
-      parseTopicReferenceRanges(source, fileName),
+      topicReferenceRanges,
     ),
   };
 }
@@ -240,38 +266,10 @@ function createCodeMappings(
   return mappings;
 }
 
-function parseTopicReferenceRanges(
-  source: string,
-  fileName: string,
-): SourceRange[] {
-  const result = transformSync(source, {
-    ast: true,
-    babelrc: false,
-    cloneInputAst: false,
-    code: false,
-    configFile: false,
-    filename: fileName,
-    parserOpts: {
-      plugins: [
-        [
-          "pipelineOperator",
-          {
-            proposal: pipelineFeature.proposal,
-            topicToken: pipelineFeature.topicToken,
-          },
-        ],
-        "typescript",
-      ],
-      sourceType: "unambiguous",
-    },
-  });
+function collectTopicReferenceRanges(ast: types.Node): SourceRange[] {
   const ranges: SourceRange[] = [];
 
-  if (!result?.ast) {
-    throw new Error(`Babel did not produce an AST for ${fileName}`);
-  }
-
-  types.traverseFast(result.ast, (node) => {
+  types.traverseFast(ast, (node) => {
     if (
       node.type === "TopicReference" &&
       typeof node.start === "number" &&
