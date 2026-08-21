@@ -1,33 +1,37 @@
-# Future TypeScript
+# fts
 
-An experimental `.fts` language toolchain for trying proposed JavaScript and
-TypeScript syntax without forking TypeScript. The first vertical slice supports
-the Hack-style Pipeline Operator with `%` as its topic token.
+> The project, package, and product names are not final. `fts` is the current
+> repository identifier; “Future TypeScript” is a working description.
 
-```ts
-const result = input
-  |> parse(%)
-  |> format(%)
-```
+## Motivation
 
-The `parse` and `format` declarations used by the demo are project-specific test
-fixtures. They illustrate the selected syntax subset and are not examples quoted
-from the Pipeline Operator proposal.
+TypeScript already fits the way JavaScript software is distributed: existing
+packages, runtimes, build tools, editors, and deployment targets continue to
+work. Replacing that ecosystem with a new language or runtime would make useful
+ideas much harder to adopt.
 
-The source is lowered by Babel to virtual TypeScript. Volar maps TypeScript 6
-diagnostics and hover results back to the original `.fts` document, while a VS
-Code TextMate grammar supplies syntax highlighting.
+At the same time, some language features and static guarantees cannot be
+expressed naturally with today's TypeScript syntax and type system. Implementing
+them only through a library can make an application's control flow and domain
+model permanently depend on that library's abstractions. Waiting for every idea
+to land upstream makes it difficult to evaluate those ideas in real TypeScript
+projects.
 
-## Requirements
+## Goal
 
-- Node.js 24.11 or newer
-- npm 11.10 or newer
-- VS Code 1.125 or newer for the extension demo
+FTS explores whether proposed language features and additional static analysis
+can be applied directly to the TypeScript workflow as removable development-time
+tooling. It reuses the existing TypeScript checker and editor ecosystem, filling
+only the gaps that current tools cannot cover.
 
-The Node.js floor follows the Babel 8 runtime requirement. Dependency versions
-are locked exactly, lifecycle scripts are disabled, and npm ignores releases
-younger than seven days. npm 11.10 is the minimum because that release introduced
-the `min-release-age` project setting.
+The compatibility boundary is ordinary TypeScript. Application code should not
+require a proprietary runtime, and adopting an experiment should preserve a
+mechanical path back to the standard JavaScript and TypeScript ecosystem. When
+standards and upstream tools catch up, the corresponding syntax transform or
+analysis should be deleted rather than retained as permanent infrastructure.
+
+The architectural rationale and accepted compromises are recorded in
+[`docs/adr/`](docs/adr/). Tests define the behavior that works today.
 
 ## Try it
 
@@ -36,44 +40,11 @@ npm install
 npm run verify
 ```
 
-Open this repository in VS Code and press `F5`, then choose
-`Launch Future TypeScript` if prompted. The Extension Development Host opens
-[`examples/pipeline.fts`](examples/pipeline.fts), which demonstrates:
+Open the repository in VS Code and press `F5` to start the local extension demo.
 
-- syntax highlighting for TypeScript, `|>`, and `%`;
-- a `string` hover on `result`;
-- an intentional type error on the `%` passed to `Math.round`.
+## Current distribution status
 
-The diagnostic remains anchored to `%`, but Babel's generated `_ref` temporary
-is deliberately excluded from semantic hover results.
-
-## Commands
-
-- `npm run check` — TypeScript-check the implementation.
-- `npm test` — test lowering, mappings, and the real LSP boundary.
-- `npm run build` — bundle the VS Code client and language server.
-- `npm run verify` — run all three in that order.
-
-## Architecture
-
-- `src/language/lower-pipeline.ts` uses Babel's official proposal plugin and
-  converts its source map into Volar mappings.
-- `src/language/plugin.ts` exposes each `.fts` document as virtual TypeScript.
-- `src/server.ts` composes Volar's language server with its TypeScript service.
-- `src/extension.ts` starts that server through VS Code's language client.
-- `syntaxes/` contains the VS Code language and TextMate contributions.
-
-Topic positions come from Babel's `TopicReference` AST nodes. Because Babel
-does not map generated temporary variables back to source, the adapter maps the
-unmapped generated range between the surrounding Babel source-map boundaries
-to that exact AST range for diagnostics only. It does not search for generated
-names or infer topics from line layout.
-
-## Current scope
-
-Only `.fts` files and a synchronous function-call pipeline with one `%` per
-stage are guaranteed. This slice does not provide `.ftsx`, transformed
-TypeScript CLI output, semantic tokens, or a custom hover for the topic value.
-Completions, definitions, references, rename, and formatting may be inherited
-from Volar's TypeScript service, but they are not guaranteed or tested in this
-slice.
+The build currently supports local extension development only and is not
+packaged for distribution. See
+[ADR 6](docs/adr/0006-use-esbuild-with-external-packages-for-local-builds.md)
+before changing or distributing the build.
