@@ -37,7 +37,7 @@
     ]
   },
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "esbuild src/extension.ts src/server.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outdir=dist --out-extension:.js=.cjs --sourcemap",
     "check": "tsc --noEmit",
     "test": "vitest run",
     "verify": "npm run check && npm test && npm run build"
