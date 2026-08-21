@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Future TypeScript",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--disable-updates",
+        "--disable-workspace-trust",
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--profile-temp",
+        "--skip-release-notes",
+        "--skip-welcome",
+        "${workspaceFolder}/examples/pipeline.fts"
+      ],
+      "outFiles": ["${workspaceFolder}/dist/*.js"],
+      "preLaunchTask": "npm: build"
+    }
+  ]
+}
