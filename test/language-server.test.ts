@@ -1,8 +1,6 @@
-import assert from 'node:assert/strict';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -12,6 +10,7 @@ import {
   type MessageConnection,
 } from 'vscode-jsonrpc/node';
 import { URI } from 'vscode-uri';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 interface Diagnostic {
   message: string;
@@ -20,6 +19,14 @@ interface Diagnostic {
 
 interface Hover {
   contents: string | { value: string } | Array<string | { value: string }>;
+}
+
+interface LanguageServerFixture {
+  diagnostics: Promise<Diagnostic[]>;
+  errors: string[];
+  hoverAt(position: Position): Promise<Hover | null>;
+  source: string;
+  stop(): Promise<void>;
 }
 
 interface Position {
@@ -40,7 +47,68 @@ const fixturePath = path.join(repositoryRoot, 'examples', 'pipeline.fts');
 const fixtureUri = URI.file(fixturePath).toString();
 const workspaceUri = URI.file(path.dirname(fixturePath)).toString();
 
-test('returns mapped TypeScript diagnostics and hover through LSP', async (t) => {
+describe('Future TypeScript language server', () => {
+  describe('when a pipeline document is open', () => {
+    let server: LanguageServerFixture;
+
+    beforeAll(async () => {
+      server = await startLanguageServer();
+    });
+
+    afterAll(async () => {
+      await server.stop();
+      expect(server.errors).toEqual([]);
+    });
+
+    describe('textDocument/hover', () => {
+      it('returns the inferred result type', async () => {
+        const hover = await server.hoverAt({ character: 8, line: 4 });
+
+        expect(hover).not.toBeNull();
+        expect(hoverText(hover!)).toContain('result: string');
+      });
+
+      it.each([
+        { character: 16, position: 'start' },
+        { character: 17, position: 'end' },
+      ])(
+        'does not expose generated names at the topic $position',
+        async ({ character }) => {
+          const hover = await server.hoverAt({ character, line: 11 });
+
+          if (hover) {
+            expect(hoverText(hover)).not.toContain('_ref2');
+          }
+        },
+      );
+    });
+
+    describe('textDocument/publishDiagnostics', () => {
+      it('maps the type error to the original topic token', async () => {
+        const diagnostics = await server.diagnostics;
+        const diagnostic = diagnostics[0]!;
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostic.message).toContain(
+          "Argument of type '{ id: number; }' is not assignable to parameter of type 'number'",
+        );
+        expect(diagnostic.range.start.line).toBe(11);
+        expect(textInRange(server.source, diagnostic.range)).toBe('%');
+      });
+    });
+  });
+});
+
+function hoverText(hover: Hover): string {
+  const contents = Array.isArray(hover.contents)
+    ? hover.contents
+    : [hover.contents];
+  return contents
+    .map((content) => (typeof content === 'string' ? content : content.value))
+    .join('\n');
+}
+
+async function startLanguageServer(): Promise<LanguageServerFixture> {
   const child = spawn(
     process.execPath,
     ['--import=tsx', 'src/server.ts', '--stdio'],
@@ -53,11 +121,9 @@ test('returns mapped TypeScript diagnostics and hover through LSP', async (t) =>
     new StreamMessageReader(child.stdout),
     new StreamMessageWriter(child.stdin),
   );
-  const serverErrors: string[] = [];
-  child.stderr.on('data', (chunk: Buffer) =>
-    serverErrors.push(chunk.toString()),
-  );
-  connection.onError((error) => serverErrors.push(String(error)));
+  const errors: string[] = [];
+  child.stderr.on('data', (chunk: Buffer) => errors.push(chunk.toString()));
+  connection.onError((error) => errors.push(String(error)));
   connection.onRequest('client/registerCapability', () => null);
   connection.onRequest('workspace/configuration', () => []);
   connection.onRequest('workspace/workspaceFolders', () => [
@@ -65,11 +131,34 @@ test('returns mapped TypeScript diagnostics and hover through LSP', async (t) =>
   ]);
   connection.listen();
 
-  t.after(async () => {
-    await stopServer(connection, child);
-    assert.equal(serverErrors.join(''), '');
+  await initialize(connection);
+
+  const source = await readFile(fixturePath, 'utf8');
+  const diagnostics = waitForDiagnostics(connection, fixtureUri);
+  connection.sendNotification('textDocument/didOpen', {
+    textDocument: {
+      languageId: 'future-typescript',
+      text: source,
+      uri: fixtureUri,
+      version: 1,
+    },
   });
 
+  return {
+    diagnostics,
+    errors,
+    hoverAt(position) {
+      return connection.sendRequest<Hover | null>('textDocument/hover', {
+        position,
+        textDocument: { uri: fixtureUri },
+      });
+    },
+    source,
+    stop: () => stopServer(connection, child),
+  };
+}
+
+async function initialize(connection: MessageConnection): Promise<void> {
   await connection.sendRequest('initialize', {
     capabilities: {
       textDocument: {
@@ -88,61 +177,6 @@ test('returns mapped TypeScript diagnostics and hover through LSP', async (t) =>
     workspaceFolders: [{ name: 'examples', uri: workspaceUri }],
   });
   connection.sendNotification('initialized', {});
-
-  const source = await readFile(fixturePath, 'utf8');
-  const diagnosticsPromise = waitForDiagnostics(connection, fixtureUri);
-  connection.sendNotification('textDocument/didOpen', {
-    textDocument: {
-      languageId: 'future-typescript',
-      text: source,
-      uri: fixtureUri,
-      version: 1,
-    },
-  });
-
-  const hover = await connection.sendRequest<Hover | null>(
-    'textDocument/hover',
-    {
-      position: { character: 8, line: 4 },
-      textDocument: { uri: fixtureUri },
-    },
-  );
-  assert.ok(hover);
-  assert.match(hoverText(hover), /result: string/);
-
-  const diagnostics = await diagnosticsPromise;
-  assert.equal(diagnostics.length, 1);
-  const typeError = diagnostics.find((diagnostic) =>
-    diagnostic.message.includes(
-      "Argument of type '{ id: number; }' is not assignable to parameter of type 'number'",
-    ),
-  );
-  assert.ok(typeError);
-  assert.equal(typeError.range.start.line, 11);
-  assert.equal(textInRange(source, typeError.range), '%');
-
-  const topicHovers = await Promise.all(
-    [16, 17].map((character) =>
-      connection.sendRequest<Hover | null>('textDocument/hover', {
-        position: { character, line: 11 },
-        textDocument: { uri: fixtureUri },
-      }),
-    ),
-  );
-  topicHovers.forEach((topicHover) => {
-    if (topicHover) {
-      assert.doesNotMatch(hoverText(topicHover), /_ref2/);
-    }
-  });
-});
-
-function hoverText(hover: Hover): string {
-  const contents = Array.isArray(hover.contents)
-    ? hover.contents
-    : [hover.contents];
-  return contents
-    .map((content) => (typeof content === 'string' ? content : content.value))
-    .join('\n');
 }
 
 async function stopServer(
@@ -161,12 +195,20 @@ async function stopServer(
 }
 
 function textInRange(source: string, range: Range): string {
-  const lines = source.split('\n');
-  assert.equal(range.start.line, range.end.line);
-  return lines[range.start.line]!.slice(
-    range.start.character,
-    range.end.character,
+  return source.slice(
+    offsetAt(source, range.start),
+    offsetAt(source, range.end),
   );
+}
+
+function offsetAt(source: string, position: Position): number {
+  const lineOffsets = [0];
+  for (let index = 0; index < source.length; index += 1) {
+    if (source[index] === '\n') {
+      lineOffsets.push(index + 1);
+    }
+  }
+  return lineOffsets[position.line]! + position.character;
 }
 
 function waitForDiagnostics(
