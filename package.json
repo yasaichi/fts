@@ -2,64 +2,20 @@
   "name": "fts",
   "version": "0.0.1",
   "private": true,
-  "type": "module",
   "description": "Proposal-aware TypeScript tooling experiments",
-  "displayName": "Future TypeScript",
   "engines": {
     "node": ">=24.11",
-    "npm": ">=11.10",
-    "vscode": "^1.125.0"
+    "npm": ">=11.10"
   },
-  "main": "./dist/extension.cjs",
-  "categories": [
-    "Programming Languages"
+  "workspaces": [
+    "packages/language-core",
+    "packages/language-server",
+    "packages/vscode"
   ],
-  "contributes": {
-    "languages": [
-      {
-        "id": "future-typescript",
-        "aliases": [
-          "Future TypeScript",
-          "fts"
-        ],
-        "extensions": [
-          ".fts"
-        ],
-        "configuration": "./syntaxes/language-configuration.json"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "future-typescript",
-        "scopeName": "source.fts",
-        "path": "./syntaxes/future-typescript.tmLanguage.json"
-      }
-    ]
-  },
   "scripts": {
-    "build": "esbuild src/extension.ts src/server.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outdir=dist --out-extension:.js=.cjs --sourcemap",
-    "check": "tsc --noEmit",
-    "test": "vitest run",
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "verify": "npm run check && npm test && npm run build"
-  },
-  "devDependencies": {
-    "@babel/core": "8.0.1",
-    "@babel/plugin-proposal-pipeline-operator": "8.0.1",
-    "@jridgewell/trace-mapping": "0.3.31",
-    "@types/babel__core": "7.20.5",
-    "@types/node": "26.2.0",
-    "@types/vscode": "1.125.0",
-    "@volar/language-core": "2.4.28",
-    "@volar/language-server": "2.4.28",
-    "@volar/language-service": "2.4.28",
-    "@volar/typescript": "2.4.28",
-    "esbuild": "0.28.2",
-    "tsx": "4.23.12",
-    "typescript": "6.0.3",
-    "vitest": "4.1.10",
-    "volar-service-typescript": "0.0.71",
-    "vscode-jsonrpc": "9.0.1",
-    "vscode-languageclient": "10.1.0",
-    "vscode-uri": "3.1.0"
   }
 }

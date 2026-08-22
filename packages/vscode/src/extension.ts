@@ -1,5 +1,3 @@
-import * as path from 'node:path';
-
 import * as vscode from 'vscode';
 import {
   LanguageClient,
@@ -8,14 +6,14 @@ import {
   type ServerOptions,
 } from 'vscode-languageclient/node';
 
-import { futureTypeScriptLanguageId } from './language/plugin.js';
+import { futureTypeScriptLanguageId } from './language-id.js';
 
 let client: LanguageClient | undefined;
 
 export async function activate(
   context: vscode.ExtensionContext,
 ): Promise<void> {
-  const serverModule = context.asAbsolutePath(path.join('dist', 'server.cjs'));
+  const serverModule = require.resolve('fts-language-server');
   const serverOptions: ServerOptions = {
     debug: {
       module: serverModule,

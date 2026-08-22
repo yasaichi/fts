@@ -7,11 +7,11 @@ import type { TypeScriptServiceScript } from '@volar/typescript';
 import type * as ts from 'typescript';
 import type { URI } from 'vscode-uri';
 
+import { lowerPipeline } from './features/pipeline-operator/lower.js';
 import {
   createIdentityLowering,
-  lowerPipeline,
   type LoweredTypeScript,
-} from './lower-pipeline.js';
+} from './lowering.js';
 
 export const futureTypeScriptLanguageId = 'future-typescript';
 

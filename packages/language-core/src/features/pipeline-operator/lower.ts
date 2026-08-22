@@ -12,15 +12,8 @@ import {
 } from '@jridgewell/trace-mapping';
 import type { CodeMapping } from '@volar/language-core';
 
-import { pipelineFeature } from '../features/pipeline/config.js';
-
-const codeInformation = {
-  completion: true,
-  navigation: true,
-  semantic: true,
-  structure: true,
-  verification: true,
-} as const;
+import { codeInformation, type LoweredTypeScript } from '../../lowering.js';
+import { pipelineFeature } from './config.js';
 
 const syntheticVerificationInformation = {
   verification: true,
@@ -28,28 +21,9 @@ const syntheticVerificationInformation = {
 
 const noCodeInformation = {} as const;
 
-export interface LoweredTypeScript {
-  code: string;
-  mappings: CodeMapping[];
-}
-
 interface SourceRange {
   end: number;
   start: number;
-}
-
-export function createIdentityLowering(source: string): LoweredTypeScript {
-  return {
-    code: source,
-    mappings: [
-      {
-        data: codeInformation,
-        generatedOffsets: [0],
-        lengths: [source.length],
-        sourceOffsets: [0],
-      },
-    ],
-  };
 }
 
 export function lowerPipeline(

@@ -9,13 +9,13 @@
       "args": [
         "--disable-updates",
         "--disable-workspace-trust",
-        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
         "--profile-temp",
         "--skip-release-notes",
         "--skip-welcome",
         "${workspaceFolder}/examples/pipeline.fts"
       ],
-      "outFiles": ["${workspaceFolder}/dist/*.js"],
+      "outFiles": ["${workspaceFolder}/packages/*/dist/*.cjs"],
       "preLaunchTask": "npm: build"
     }
   ]

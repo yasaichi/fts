@@ -1,7 +1,7 @@
 import { SourceMap } from '@volar/language-core';
 import { describe, expect, it } from 'vitest';
 
-import { lowerPipeline } from '../src/language/lower-pipeline.js';
+import { lowerPipeline } from '../../../src/index.js';
 
 describe('lowerPipeline', () => {
   describe('when source contains a Hack-style pipeline', () => {

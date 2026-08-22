@@ -1,0 +1,32 @@
+{
+  "name": "fts-language-server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Language Server Protocol implementation for fts",
+  "main": "./dist/server.cjs",
+  "bin": {
+    "fts-language-server": "./bin/fts-language-server.cjs"
+  },
+  "engines": {
+    "node": ">=24.11"
+  },
+  "scripts": {
+    "build": "esbuild src/server.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/server.cjs --sourcemap",
+    "check": "tsc --noEmit",
+    "test": "npm run build -w fts-language-core && npm run build -w fts-language-server && vitest run"
+  },
+  "dependencies": {
+    "@volar/language-server": "2.4.28",
+    "fts-language-core": "0.0.1",
+    "typescript": "6.0.3",
+    "volar-service-typescript": "0.0.71"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "esbuild": "0.28.2",
+    "vitest": "4.1.10",
+    "vscode-jsonrpc": "9.0.1",
+    "vscode-uri": "3.1.0"
+  }
+}

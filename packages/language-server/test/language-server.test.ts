@@ -42,6 +42,8 @@ interface Range {
 const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
+  '..',
+  '..',
 );
 const fixturePath = path.join(repositoryRoot, 'examples', 'pipeline.fts');
 const fixtureUri = URI.file(fixturePath).toString();
@@ -111,7 +113,10 @@ function hoverText(hover: Hover): string {
 async function startLanguageServer(): Promise<LanguageServerFixture> {
   const child = spawn(
     process.execPath,
-    ['--import=tsx', 'src/server.ts', '--stdio'],
+    [
+      'packages/language-server/bin/fts-language-server.cjs',
+      '--stdio',
+    ],
     {
       cwd: repositoryRoot,
       stdio: ['pipe', 'pipe', 'pipe'],
