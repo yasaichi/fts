@@ -23,9 +23,6 @@
     "volar-service-typescript": "0.0.71"
   },
   "devDependencies": {
-    "@types/node": "26.2.0",
-    "@volar/test-utils": "2.4.28",
-    "esbuild": "0.28.2",
-    "vitest": "4.1.10"
+    "@volar/test-utils": "2.4.28"
   }
 }

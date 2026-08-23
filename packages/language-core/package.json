@@ -29,11 +29,7 @@
   },
   "devDependencies": {
     "@types/babel__core": "7.20.5",
-    "@types/node": "26.2.0",
-    "@volar/typescript": "2.4.28",
-    "esbuild": "0.28.2",
-    "typescript": "6.0.3",
-    "vitest": "4.1.10"
+    "@volar/typescript": "2.4.28"
   },
   "peerDependencies": {
     "typescript": "6.0.3"
