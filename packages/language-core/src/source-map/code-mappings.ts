@@ -1,8 +1,4 @@
-import {
-  decodedMappings,
-  TraceMap,
-  type EncodedSourceMap,
-} from '@jridgewell/trace-mapping';
+import { decodedMappings, TraceMap } from '@jridgewell/trace-mapping';
 import type { CodeMapping } from '@volar/language-core';
 import { createScanner, LanguageVariant, ScriptTarget } from 'typescript';
 import { codeInformation } from '../lowering.js';
@@ -16,7 +12,7 @@ const syntheticVerificationInformation = {
 export interface CodeMappingsInput {
   generated: string;
   source: string;
-  sourceMap: EncodedSourceMap;
+  sourceMap: ConstructorParameters<typeof TraceMap>[0];
 }
 
 export interface SourceRange {

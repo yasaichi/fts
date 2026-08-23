@@ -1,19 +1,8 @@
-import {
-  parseSync,
-  transformFromAstSync,
-  types,
-  type PluginItem,
-} from '@babel/core';
+import { parseSync, transformFromAstSync, types } from '@babel/core';
 import pipelineOperatorPlugin from '@babel/plugin-proposal-pipeline-operator';
-import type { EncodedSourceMap } from '@jridgewell/trace-mapping';
 import type { LoweredTypeScript } from '../../lowering.js';
 import { pipelineOperatorConfig } from './config.js';
 import { createPipelineMappings, type SourceRange } from './mappings.js';
-
-interface TransformedPipeline {
-  code: string;
-  sourceMap: EncodedSourceMap;
-}
 
 export function lowerPipeline(
   source: string,
@@ -86,11 +75,7 @@ function topicReferenceRange(node: types.Node): SourceRange | undefined {
   return { end: node.end, start: node.start };
 }
 
-function transformPipeline(
-  ast: types.File,
-  source: string,
-  fileName: string,
-): TransformedPipeline {
+function transformPipeline(ast: types.File, source: string, fileName: string) {
   const result = transformFromAstSync(ast, source, {
     ast: false,
     babelrc: false,
@@ -99,13 +84,14 @@ function transformPipeline(
     configFile: false,
     filename: fileName,
     plugins: [
+      // @ts-expect-error Babel types require plugins to accept arbitrary options.
       [
         pipelineOperatorPlugin,
         {
           proposal: pipelineOperatorConfig.proposal,
           topicToken: pipelineOperatorConfig.topicToken,
         },
-      ] as unknown as PluginItem,
+      ],
     ],
     sourceFileName: fileName,
     sourceMaps: true,
@@ -117,6 +103,6 @@ function transformPipeline(
 
   return {
     code: result.code,
-    sourceMap: result.map as unknown as EncodedSourceMap,
+    sourceMap: result.map,
   };
 }
