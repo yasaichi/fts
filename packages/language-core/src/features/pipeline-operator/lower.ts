@@ -42,6 +42,8 @@ function parsePipeline(source: string, fileName: string): types.File {
     configFile: false,
     filename: fileName,
     parserOpts: {
+      // Language tooling must lower recoverable documents while they are edited.
+      errorRecovery: true,
       plugins: [
         [
           'pipelineOperator',
