@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import * as typescript from 'typescript';
 import { URI } from 'vscode-uri';
 import { describe, expect, it } from 'vitest';
-import { FutureTypeScriptVirtualCode } from '../src/index.js';
+import { FutureTypeScriptVirtualCode } from '../src/language-plugin.js';
 
 describe('FutureTypeScriptVirtualCode', () => {
   const source = readFileSync(
