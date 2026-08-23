@@ -17,16 +17,15 @@
     "test": "npm run build -w @ftslang/core && npm run build -w @ftslang/server && vitest run"
   },
   "dependencies": {
-    "@volar/language-server": "2.4.28",
     "@ftslang/core": "0.0.1",
+    "@volar/language-server": "2.4.28",
     "typescript": "6.0.3",
     "volar-service-typescript": "0.0.71"
   },
   "devDependencies": {
     "@types/node": "26.2.0",
+    "@volar/test-utils": "2.4.28",
     "esbuild": "0.28.2",
-    "vitest": "4.1.10",
-    "vscode-jsonrpc": "9.0.1",
-    "vscode-uri": "3.1.0"
+    "vitest": "4.1.10"
   }
 }

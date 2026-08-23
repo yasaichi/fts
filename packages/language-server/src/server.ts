@@ -1,3 +1,4 @@
+import { createFutureTypeScriptLanguagePlugin } from '@ftslang/core';
 import {
   createConnection,
   createServer,
@@ -6,12 +7,8 @@ import {
 import * as typescript from 'typescript';
 import { create as createTypeScriptServices } from 'volar-service-typescript';
 
-import { createFutureTypeScriptLanguagePlugin } from '@ftslang/core';
-
 const connection = createConnection();
 const server = createServer(connection);
-
-connection.listen();
 
 connection.onInitialize((params) => {
   return server.initialize(
@@ -26,3 +23,5 @@ connection.onInitialize((params) => {
 
 connection.onInitialized(server.initialized);
 connection.onShutdown(server.shutdown);
+
+connection.listen();
