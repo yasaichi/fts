@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { futureTypeScriptLanguageId as coreLanguageId } from 'fts-language-core';
+import { futureTypeScriptLanguageId as coreLanguageId } from '@ftslang/core';
 import { describe, expect, it } from 'vitest';
 
 import { futureTypeScriptLanguageId as clientLanguageId } from '../src/language-id.js';

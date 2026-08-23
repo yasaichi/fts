@@ -13,7 +13,7 @@ let client: LanguageClient | undefined;
 export async function activate(
   context: vscode.ExtensionContext,
 ): Promise<void> {
-  const serverModule = require.resolve('fts-language-server');
+  const serverModule = require.resolve('@ftslang/server');
   const serverOptions: ServerOptions = {
     debug: {
       module: serverModule,

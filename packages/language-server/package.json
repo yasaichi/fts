@@ -1,5 +1,5 @@
 {
-  "name": "fts-language-server",
+  "name": "@ftslang/server",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -14,11 +14,11 @@
   "scripts": {
     "build": "esbuild src/server.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/server.cjs --sourcemap",
     "check": "tsc --noEmit",
-    "test": "npm run build -w fts-language-core && npm run build -w fts-language-server && vitest run"
+    "test": "npm run build -w @ftslang/core && npm run build -w @ftslang/server && vitest run"
   },
   "dependencies": {
     "@volar/language-server": "2.4.28",
-    "fts-language-core": "0.0.1",
+    "@ftslang/core": "0.0.1",
     "typescript": "6.0.3",
     "volar-service-typescript": "0.0.71"
   },

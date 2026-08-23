@@ -1,5 +1,5 @@
 {
-  "name": "fts-vscode",
+  "name": "ftslang-vscode",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -38,17 +38,17 @@
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
     "check": "tsc --noEmit",
-    "test": "npm run build -w fts-language-core && vitest run"
+    "test": "npm run build -w @ftslang/core && vitest run"
   },
   "dependencies": {
-    "fts-language-server": "0.0.1",
+    "@ftslang/server": "0.0.1",
     "vscode-languageclient": "10.1.0"
   },
   "devDependencies": {
     "@types/node": "26.2.0",
     "@types/vscode": "1.125.0",
     "esbuild": "0.28.2",
-    "fts-language-core": "0.0.1",
+    "@ftslang/core": "0.0.1",
     "typescript": "6.0.3",
     "vitest": "4.1.10"
   }

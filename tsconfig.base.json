@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "noEmit": true,
     "paths": {
-      "fts-language-core": ["./packages/language-core/src/index.ts"]
+      "@ftslang/core": ["./packages/language-core/src/index.ts"]
     },
     "skipLibCheck": true,
     "strict": true,

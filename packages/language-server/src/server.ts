@@ -6,7 +6,7 @@ import {
 import * as typescript from 'typescript';
 import { create as createTypeScriptServices } from 'volar-service-typescript';
 
-import { createFutureTypeScriptLanguagePlugin } from 'fts-language-core';
+import { createFutureTypeScriptLanguagePlugin } from '@ftslang/core';
 
 const connection = createConnection();
 const server = createServer(connection);
