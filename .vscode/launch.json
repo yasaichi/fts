@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Future TypeScript",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
+        "--profile-temp",
+        "--skip-release-notes",
+        "--skip-welcome",
+        "${workspaceFolder}/examples/pipeline.fts"
+      ],
+      "outFiles": ["${workspaceFolder}/packages/*/dist/*.cjs"],
+      "preLaunchTask": "npm: build"
+    }
+  ]
+}

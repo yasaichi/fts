@@ -1,0 +1,7 @@
+declare const input: string
+declare function parse(value: string): { id: number }
+declare function format(value: { id: number }): string
+
+const result = input
+  |> parse(%)
+  |> format(%)
