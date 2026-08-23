@@ -1,7 +1,7 @@
 import { SourceMap } from '@volar/language-core';
 import { readFileSync } from 'node:fs';
 import { ScriptTarget, transpileModule } from 'typescript';
-import { describe, describe as context, expect, it } from 'vitest';
+import { assert, describe, describe as context, expect, it } from 'vitest';
 import { lowerPipeline } from '../../../src/index.js';
 
 describe('lowerPipeline(source, fileName)', () => {
@@ -70,10 +70,12 @@ describe('lowerPipeline(source, fileName)', () => {
               (information) => Boolean(information.verification),
             ),
           );
-          const [verificationRange] = verificationRanges;
-
           expect(verificationRanges).toHaveLength(1);
-          const [generatedStart, generatedEnd] = verificationRange!;
+
+          const [verificationRange] = verificationRanges;
+          assert.isDefined(verificationRange);
+
+          const [generatedStart, generatedEnd] = verificationRange;
           expect(generatedEnd).toBeGreaterThan(generatedStart);
         },
       );
