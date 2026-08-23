@@ -1,5 +1,6 @@
 // Vendored from Visual Studio Code 1.125.0:
 // https://github.com/microsoft/vscode/blob/1.125.0/extensions/typescript-basics/language-configuration.json
+// Angle brackets are not colorized because `>` is also part of the pipeline operator.
 {
 	// Note that this file should stay in sync with 'javascript-language-basics/javascript-language-configuration.json'
 	"comments": {
@@ -125,10 +126,6 @@
 		[
 			"{",
 			"}"
-		],
-		[
-			"<",
-			">"
 		]
 	],
 	"autoCloseBefore": ";:.,=}])>` \n\t",
