@@ -1,18 +1,15 @@
-import * as vscode from 'vscode';
+import { workspace, type ExtensionContext } from 'vscode';
 import {
   LanguageClient,
   TransportKind,
   type LanguageClientOptions,
   type ServerOptions,
 } from 'vscode-languageclient/node';
-
 import { futureTypeScriptLanguageId } from './language-id.js';
 
 let client: LanguageClient | undefined;
 
-export async function activate(
-  context: vscode.ExtensionContext,
-): Promise<void> {
+export async function activate(context: ExtensionContext): Promise<void> {
   const serverModule = require.resolve('@ftslang/server');
   const serverOptions: ServerOptions = {
     debug: {
@@ -33,7 +30,7 @@ export async function activate(
       },
     ],
     synchronize: {
-      fileEvents: vscode.workspace.createFileSystemWatcher('**/*.fts'),
+      fileEvents: workspace.createFileSystemWatcher('**/*.fts'),
     },
   };
 
@@ -44,6 +41,7 @@ export async function activate(
     clientOptions,
   );
   context.subscriptions.push(client);
+
   await client.start();
 }
 

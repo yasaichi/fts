@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "resolveJsonModule": true,
     "types": ["node", "vscode"]
   },
   "include": ["src", "test"]
