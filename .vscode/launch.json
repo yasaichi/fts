@@ -7,8 +7,6 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": [
-        "--disable-updates",
-        "--disable-workspace-trust",
         "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
         "--profile-temp",
         "--skip-release-notes",
