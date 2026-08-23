@@ -35,6 +35,7 @@ The build remains close to Volar's recommended toolchain, fast, and expressible
 without a custom build script.
 
 The artifacts are not self-contained and fail without the matching installed
-packages. Most runtime packages are currently dev dependencies, so the current
-output must not be treated as publishable. Distribution work must revisit this
-ADR rather than silently shipping the local build.
+packages. Runtime packages are declared as dependencies, but the local build
+still relies on the workspace `node_modules` tree and has not been packaged as a
+VSIX. Distribution work must revisit this ADR rather than silently shipping the
+local build.

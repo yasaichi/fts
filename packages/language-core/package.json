@@ -7,7 +7,7 @@
   "main": "./dist/index.cjs",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.cjs"
     }
   },
@@ -15,23 +15,27 @@
     "node": ">=24.11"
   },
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --sourcemap",
+    "build": "npm run build:types && esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --sourcemap",
+    "build:types": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@babel/core": "8.0.1",
     "@babel/plugin-proposal-pipeline-operator": "8.0.1",
-    "@jridgewell/trace-mapping": "0.3.31"
+    "@jridgewell/trace-mapping": "0.3.31",
+    "@volar/language-core": "2.4.28",
+    "vscode-uri": "3.1.0"
   },
   "devDependencies": {
     "@types/babel__core": "7.20.5",
     "@types/node": "26.2.0",
-    "@volar/language-core": "2.4.28",
     "@volar/typescript": "2.4.28",
     "esbuild": "0.28.2",
     "typescript": "6.0.3",
-    "vitest": "4.1.10",
-    "vscode-uri": "3.1.0"
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "typescript": "6.0.3"
   }
 }
