@@ -6,7 +6,6 @@ import type {
 import type { TypeScriptServiceScript } from '@volar/typescript';
 import type * as ts from 'typescript';
 import type { URI } from 'vscode-uri';
-
 import { lowerPipeline } from './features/pipeline-operator/lower.js';
 import {
   createIdentityLowering,
