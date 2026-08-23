@@ -1,0 +1,37 @@
+{
+  "name": "@ftslang/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Proposal lowering and virtual TypeScript for fts",
+  "main": "./dist/index.cjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.cjs"
+    }
+  },
+  "engines": {
+    "node": ">=24.11"
+  },
+  "scripts": {
+    "build": "npm run build:types && esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --sourcemap",
+    "build:types": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@babel/core": "8.0.1",
+    "@babel/plugin-proposal-pipeline-operator": "8.0.1",
+    "@jridgewell/trace-mapping": "0.3.31",
+    "@volar/language-core": "2.4.28",
+    "vscode-uri": "3.1.0"
+  },
+  "devDependencies": {
+    "@types/babel__core": "7.20.5",
+    "@volar/typescript": "2.4.28"
+  },
+  "peerDependencies": {
+    "typescript": "6.0.3"
+  }
+}

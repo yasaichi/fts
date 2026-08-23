@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Future TypeScript",
+  "scopeName": "source.fts",
+  "patterns": [
+    {
+      "begin": "(\\|>)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.operator.pipeline.fts"
+        }
+      },
+      "end": "(?=\\|>|[;\\n])",
+      "name": "meta.pipeline-stage.fts",
+      "patterns": [
+        {
+          "match": "%",
+          "name": "variable.language.topic.fts"
+        },
+        {
+          "include": "source.ts"
+        }
+      ]
+    },
+    {
+      "include": "source.ts"
+    }
+  ]
+}

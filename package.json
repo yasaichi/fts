@@ -1,0 +1,27 @@
+{
+  "name": "fts",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Proposal-aware TypeScript tooling experiments",
+  "engines": {
+    "node": ">=24.11",
+    "npm": ">=11.10"
+  },
+  "workspaces": [
+    "packages/language-core",
+    "packages/language-server",
+    "packages/vscode"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "verify": "npm run check && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@ftslang/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Language Server Protocol implementation for fts",
+  "main": "./dist/server.cjs",
+  "bin": {
+    "fts-language-server": "./bin/fts-language-server.cjs"
+  },
+  "engines": {
+    "node": ">=24.11"
+  },
+  "scripts": {
+    "build": "esbuild src/server.ts --bundle --packages=external --external:@ftslang/core --platform=node --target=node24 --format=cjs --outfile=dist/server.cjs --sourcemap",
+    "check": "tsc --noEmit",
+    "test": "npm run build -w @ftslang/core && npm run build -w @ftslang/server && vitest run"
+  },
+  "dependencies": {
+    "@ftslang/core": "0.0.1",
+    "@volar/language-server": "2.4.28",
+    "typescript": "6.0.3",
+    "volar-service-typescript": "0.0.71"
+  },
+  "devDependencies": {
+    "@volar/test-utils": "2.4.28"
+  }
+}

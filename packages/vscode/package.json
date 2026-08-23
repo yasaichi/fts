@@ -1,0 +1,51 @@
+{
+  "name": "ftslang-vscode",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "VS Code client for fts",
+  "displayName": "Future TypeScript",
+  "engines": {
+    "node": ">=24.11",
+    "vscode": "^1.125.0"
+  },
+  "main": "./dist/extension.cjs",
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "future-typescript",
+        "aliases": [
+          "Future TypeScript",
+          "fts"
+        ],
+        "extensions": [
+          ".fts"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "future-typescript",
+        "scopeName": "source.fts",
+        "path": "./syntaxes/fts.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
+    "check": "tsc --noEmit",
+    "test": "npm run build -w @ftslang/core && vitest run"
+  },
+  "dependencies": {
+    "@ftslang/server": "0.0.1",
+    "vscode-languageclient": "10.1.0"
+  },
+  "devDependencies": {
+    "@ftslang/core": "0.0.1",
+    "@types/vscode": "1.125.0"
+  }
+}
