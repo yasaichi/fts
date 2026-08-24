@@ -1,9 +1,9 @@
-import { workspace, type ExtensionContext } from 'vscode';
+import { type ExtensionContext, workspace } from 'vscode';
 import {
   LanguageClient,
-  TransportKind,
   type LanguageClientOptions,
   type ServerOptions,
+  TransportKind,
 } from 'vscode-languageclient/node';
 import { futureTypeScriptLanguageId } from './language-id.js';
 

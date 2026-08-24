@@ -1,7 +1,7 @@
-import { SourceMap } from '@volar/language-core';
 import { readFileSync } from 'node:fs';
+import { SourceMap } from '@volar/language-core';
 import { ScriptTarget, transpileModule } from 'typescript';
-import { assert, describe, describe as context, expect, it } from 'vitest';
+import { assert, describe as context, describe, expect, it } from 'vitest';
 import { lowerPipeline } from '../../../src/index.js';
 
 describe('lowerPipeline(source, fileName)', () => {

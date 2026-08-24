@@ -1,6 +1,6 @@
 import {
-  createCodeMappings,
   type CodeMappingsInput,
+  createCodeMappings,
   type SourceRange,
 } from '../../source-map/code-mappings.js';
 

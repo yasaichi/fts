@@ -1,13 +1,13 @@
-import {
-  startLanguageServer,
-  type LanguageServerHandle,
-} from '@volar/test-utils';
 import { fileURLToPath } from 'node:url';
+import {
+  type LanguageServerHandle,
+  startLanguageServer,
+} from '@volar/test-utils';
 import {
   afterAll,
   beforeAll,
-  describe,
   describe as context,
+  describe,
   expect,
   it,
 } from 'vitest';
