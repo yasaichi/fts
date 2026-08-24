@@ -15,12 +15,21 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "check": "npm run check --workspaces --if-present",
+    "format": "biome check --write",
+    "format:check": "biome check",
+    "hooks:install": "git config set --local hook.fts-verify.command 'npm run verify:commit' && git config set --local --all hook.fts-verify.event pre-commit",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
     "test": "npm run test --workspaces --if-present",
-    "verify": "npm run check && npm test && npm run build"
+    "verify": "concurrently --kill-others-on-fail --names commit,test \"npm run verify:commit\" \"npm test\" && npm run build",
+    "verify:commit": "concurrently --kill-others-on-fail --names format,lint,types \"npm run format:check\" \"npm run lint\" \"npm run check\""
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.8",
     "@types/node": "26.2.0",
+    "concurrently": "10.0.5",
     "esbuild": "0.28.2",
+    "oxlint": "1.78.0",
     "typescript": "6.0.3",
     "vitest": "4.1.10"
   }

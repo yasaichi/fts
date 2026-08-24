@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "perf": "error",
+    "suspicious": "error"
+  },
+  "ignorePatterns": ["**/dist/**", "**/*.fts"],
+  "options": {
+    "reportUnusedDisableDirectives": "error"
+  },
+  "overrides": [
+    {
+      "files": ["packages/*/bin/**/*.cjs"],
+      "rules": {
+        "import/no-unassigned-import": "off"
+      }
+    }
+  ],
+  "plugins": ["import", "typescript", "unicorn", "vitest"],
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "unicorn/no-array-sort": [
+      "error",
+      {
+        "allowExpressionStatement": false
+      }
+    ]
+  }
+}

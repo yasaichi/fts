@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": ["**"]
+          }
+        }
+      }
+    },
+    "enabled": true
+  },
+  "files": {
+    "includes": [
+      "**/*.ts",
+      "**/*.json",
+      "**/*.cjs",
+      "!!**/dist",
+      "!package-lock.json",
+      "!packages/vscode/language-configuration.json"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "linter": {
+    "enabled": false
+  }
+}

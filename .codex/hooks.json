@@ -1,0 +1,19 @@
+{
+  "description": "Apply fast repository checks after Codex edits.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/verify.cjs\"",
+            "statusMessage": "Verifying repository changes",
+            "timeout": 30,
+            "additionalContextLimit": 1500
+          }
+        ]
+      }
+    ]
+  }
+}
