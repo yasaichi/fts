@@ -2,15 +2,18 @@ import { readFileSync } from 'node:fs';
 import { SourceMap } from '@volar/language-core';
 import { ScriptTarget, transpileModule } from 'typescript';
 import { assert, describe as context, describe, expect, it } from 'vitest';
-import { lowerPipeline } from '../../../src/index.js';
+import { createPipelineVirtualTypeScript } from '../../../src/features/pipeline-operator/editor-lowering.js';
 
-describe('lowerPipeline(source, fileName)', () => {
+describe('createPipelineVirtualTypeScript(source, fileName)', () => {
   context('when source contains a Hack-style pipeline', () => {
     const pipelineSource = readFileSync(
       new URL('../../fixtures/pipeline-operator/basic.fts', import.meta.url),
       'utf8',
     );
-    const lowered = lowerPipeline(pipelineSource);
+    const lowered = createPipelineVirtualTypeScript(
+      pipelineSource,
+      'basic.fts',
+    );
 
     describe('code', () => {
       it('does not contain pipeline syntax', () => {
@@ -84,7 +87,7 @@ describe('lowerPipeline(source, fileName)', () => {
 
   context('when source contains only current TypeScript syntax', () => {
     const source = 'const answer: number = 42';
-    const lowered = lowerPipeline(source);
+    const lowered = createPipelineVirtualTypeScript(source, 'ordinary.fts');
 
     describe('code', () => {
       it('has no syntax errors', () => {
@@ -115,7 +118,7 @@ describe('lowerPipeline(source, fileName)', () => {
   context('when source contains a Unicode identifier', () => {
     const identifier = '日本語';
     const source = `const ${identifier}: number = 42`;
-    const lowered = lowerPipeline(source);
+    const lowered = createPipelineVirtualTypeScript(source, 'unicode.fts');
 
     describe('mappings', () => {
       it.each(Array.from({ length: identifier.length }, (_, index) => index))(

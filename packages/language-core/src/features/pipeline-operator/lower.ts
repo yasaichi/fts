@@ -1,25 +1,55 @@
 import { parseSync, transformFromAstSync, types } from '@babel/core';
 import pipelineOperatorPlugin from '@babel/plugin-proposal-pipeline-operator';
-import type { LoweredTypeScript } from '../../lowering.js';
+import {
+  type EncodedSourceMap,
+  encodedMap,
+  TraceMap,
+} from '@jridgewell/trace-mapping';
 import { pipelineOperatorConfig } from './config.js';
-import { createPipelineMappings, type SourceRange } from './mappings.js';
+import type { SourceRange } from './mappings.js';
+
+interface PipelineLowering {
+  code: string;
+  map: EncodedSourceMap;
+  topicReferenceRanges: readonly SourceRange[];
+}
+
+interface PipelineParserOptions {
+  errorRecovery: boolean;
+}
 
 export function lowerPipeline(
   source: string,
-  fileName = 'source.fts',
-): LoweredTypeScript {
-  const ast = parsePipeline(source, fileName);
+  fileName: string,
+): Pick<PipelineLowering, 'code' | 'map'> {
+  const { code, map } = createPipelineLowering(source, fileName, {
+    errorRecovery: false,
+  });
+
+  return { code, map };
+}
+
+export function lowerPipelineForEditing(
+  source: string,
+  fileName: string,
+): PipelineLowering {
+  return createPipelineLowering(source, fileName, { errorRecovery: true });
+}
+
+function createPipelineLowering(
+  source: string,
+  fileName: string,
+  parserOptions: PipelineParserOptions,
+): PipelineLowering {
+  const ast = parsePipeline(source, fileName, parserOptions);
   const topicReferenceRanges = collectTopicReferenceRanges(ast);
   const transformed = transformPipeline(ast, source, fileName);
+  const map = encodedMap(new TraceMap(transformed.sourceMap));
 
   return {
     code: transformed.code,
-    mappings: createPipelineMappings({
-      generated: transformed.code,
-      source,
-      sourceMap: transformed.sourceMap,
-      topicReferenceRanges,
-    }),
+    map,
+    topicReferenceRanges,
   };
 }
 
@@ -36,14 +66,17 @@ function collectTopicReferenceRanges(ast: types.Node): SourceRange[] {
   return ranges;
 }
 
-function parsePipeline(source: string, fileName: string): types.File {
+function parsePipeline(
+  source: string,
+  fileName: string,
+  parserOptions: PipelineParserOptions,
+): types.File {
   const ast = parseSync(source, {
     babelrc: false,
     configFile: false,
     filename: fileName,
     parserOpts: {
-      // Language tooling must lower recoverable documents while they are edited.
-      errorRecovery: true,
+      errorRecovery: parserOptions.errorRecovery,
       plugins: [
         [
           'pipelineOperator',
