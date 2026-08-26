@@ -1,50 +1,61 @@
 # fts
 
-> The project, package, and product names are not final. `fts` is the current
-> repository identifier; “Future TypeScript” is a working description.
+FTS is an experimental language and tooling layer for JavaScript and TypeScript
+developers who want to evaluate future JavaScript features and stronger static
+guarantees in existing TypeScript applications before standard toolchains
+support them. It aims to improve JavaScript without requiring teams to adopt a
+new language, proprietary runtime, or application-wide library model.
 
-## Motivation
+FTS does this by translating opt-in `.fts` source to ordinary TypeScript and
+reusing existing editors, type checkers, build tools, packages, and JavaScript
+runtimes. When standards and upstream tools catch up, the corresponding FTS
+implementation can be removed without stranding the application.
 
-TypeScript already fits the way JavaScript software is distributed: existing
-packages, runtimes, build tools, editors, and deployment targets continue to
-work. Replacing that ecosystem with a new language or runtime would make useful
-ideas much harder to adopt.
+## Why this exists
 
-At the same time, some language features and static guarantees cannot be
-expressed naturally with today's TypeScript syntax and type system. Implementing
-them only through a library can make an application's control flow and domain
-model permanently depend on that library's abstractions. Waiting for every idea
-to land upstream makes it difficult to evaluate those ideas in real TypeScript
-projects.
+JavaScript and TypeScript still leave gaps in areas such as typed error
+propagation, resource lifetime, pattern matching, and analysis across function
+boundaries. A new language can address them directly, but asks developers to
+leave or recreate their existing ecosystem. A runtime-like TypeScript library
+preserves that ecosystem, but can take over control flow, errors, concurrency,
+resources, and dependency injection until removing it requires an application
+rewrite.
 
-## Goal
+Waiting for standards avoids both forms of lock-in but prevents ideas from being
+tested in real applications. FTS instead uses existing JavaScript, Web, and
+TypeScript capabilities wherever possible and fills only the missing syntax and
+analysis with removable development-time tooling. Ordinary TypeScript remains
+the compatibility and exit boundary.
 
-FTS explores whether proposed language features and additional static analysis
-can be applied directly to the TypeScript workflow as removable development-time
-tooling. It reuses the existing TypeScript checker and editor ecosystem, filling
-only the gaps that current tools cannot cover.
+## How it works
 
-The compatibility boundary is ordinary TypeScript. Application code should not
-require a proprietary runtime, and adopting an experiment should preserve a
-mechanical path back to the standard JavaScript and TypeScript ecosystem. When
-standards and upstream tools catch up, the corresponding syntax transform or
-analysis should be deleted rather than retained as permanent infrastructure.
+[Babel](https://babeljs.io/) parses proposed syntax that TypeScript does not yet
+understand and lowers it to ordinary TypeScript with source mappings. Each
+feature adapter owns its proposal version, semantics, mappings, and additional
+static checks. [Volar](https://volarjs.dev/) presents the lowered code to the
+TypeScript language service and maps its diagnostics and semantic information
+back to the original `.fts` source.
 
-The architectural rationale and accepted compromises are recorded in
-[`docs/adr/`](docs/adr/). Tests define the behavior that works today.
+For builds, [Unplugin](https://unplugin.unjs.io/) provides thin host adapters
+around the same core lowering. [SWC](https://swc.rs/) emits standard JavaScript,
+and composed source maps point back to the original `.fts` file. Editor and
+build integrations derive their outputs from the same lowering result so
+proposal semantics have one implementation.
 
-## Try it
+## Try the repository
+
+`fts` and “Future TypeScript” are working names, and the packages and VS Code
+extension are not yet published. Development requires Node.js 24.11 or later
+and npm 11.10 or later.
 
 ```sh
 npm install
 npm run verify
 ```
 
-Open the repository in VS Code and press `F5` to start the local extension demo.
+Open the repository in VS Code and press `F5` to launch the local extension
+demo with the current [`example fixture`](examples/pipeline.fts).
 
-## Current distribution status
-
-The build currently supports local extension development only and is not
-packaged for distribution. See
-[ADR 6](docs/adr/0006-use-esbuild-with-external-packages-for-local-builds.md)
-before changing or distributing the build.
+Accepted decisions and their trade-offs are recorded in
+[`docs/adr/`](docs/adr/). Tests and executable configuration define current
+behavior.
