@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { SourceMap } from '@volar/language-core';
 import { ScriptTarget, transpileModule } from 'typescript';
-import { assert, describe as context, describe, expect, it } from 'vitest';
+import { describe as context, describe, expect, it } from 'vitest';
 import { createPipelineVirtualTypeScript } from '../../../src/features/pipeline-operator/editor-lowering.js';
 
 describe('createPipelineVirtualTypeScript(source, fileName)', () => {
@@ -75,10 +75,7 @@ describe('createPipelineVirtualTypeScript(source, fileName)', () => {
           );
           expect(verificationRanges).toHaveLength(1);
 
-          const [verificationRange] = verificationRanges;
-          assert.isDefined(verificationRange);
-
-          const [generatedStart, generatedEnd] = verificationRange;
+          const [[generatedStart, generatedEnd]] = verificationRanges;
           expect(generatedEnd).toBeGreaterThan(generatedStart);
         },
       );

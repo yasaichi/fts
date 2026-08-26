@@ -4,6 +4,7 @@
     "module": "NodeNext",
     "noEmit": true,
     "paths": {
+      "@ftslang/build/vite": ["./packages/build/src/vite.ts"],
       "@ftslang/core": ["./packages/language-core/src/index.ts"]
     },
     "skipLibCheck": true,

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { originalPositionFor, TraceMap } from '@jridgewell/trace-mapping';
 import { ScriptTarget, transpileModule } from 'typescript';
-import { assert, describe as context, describe, expect, it } from 'vitest';
+import { describe as context, describe, expect, it } from 'vitest';
 import { lowerFutureTypeScript } from '../src/index.js';
 
 describe('lowerFutureTypeScript(source, fileName)', () => {
@@ -28,23 +28,32 @@ describe('lowerFutureTypeScript(source, fileName)', () => {
     });
 
     describe('map', () => {
+      // oxlint-disable-next-line unicorn/consistent-function-scoping -- Keep this helper within the map contract.
+      const positionOfSymbol = (text: string, symbol: string) => {
+        const offset = text.indexOf(symbol);
+
+        if (offset < 0) {
+          throw new Error(`Could not find "${symbol}" in source`);
+        }
+
+        const prefix = text.slice(0, offset);
+        return {
+          column: offset - (prefix.lastIndexOf('\n') + 1),
+          line: prefix.split('\n').length,
+        };
+      };
+
       it('traces the generated symbol to the original source symbol', () => {
-        const resultOffset = lowered.code.indexOf('result');
-        assert.isAtLeast(resultOffset, 0);
+        const original = originalPositionFor(
+          new TraceMap(lowered.map),
+          positionOfSymbol(lowered.code, 'result'),
+        );
 
-        const generatedPrefix = lowered.code.slice(0, resultOffset);
-        const original = originalPositionFor(new TraceMap(lowered.map), {
-          column: resultOffset - (generatedPrefix.lastIndexOf('\n') + 1),
-          line: (generatedPrefix.match(/\n/g)?.length ?? 0) + 1,
+        expect(original).toMatchObject({
+          column: 6,
+          line: 5,
+          source: 'basic.fts',
         });
-        assert.isNotNull(original.column);
-        assert.isNotNull(original.line);
-        assert.isNotNull(original.source);
-
-        const originalLine = source.split('\n')[original.line - 1];
-        assert.isDefined(originalLine);
-        expect(original.source).toBe('basic.fts');
-        expect(originalLine.slice(original.column)).toMatch(/^result\b/);
       });
     });
 

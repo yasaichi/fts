@@ -29,7 +29,7 @@ export function lowerPipeline(
   return { code, map };
 }
 
-export function lowerPipelineForEditing(
+export function lowerPipelineForVirtualCode(
   source: string,
   fileName: string,
 ): PipelineLowering {

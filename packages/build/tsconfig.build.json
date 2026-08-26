@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "dist",
+    "paths": {
+      "@ftslang/core": ["../language-core/dist/index.d.ts"]
+    },
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,34 @@
+{
+  "name": "@ftslang/build",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Build integrations for fts",
+  "exports": {
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "default": "./dist/vite.mjs"
+    }
+  },
+  "engines": {
+    "node": ">=24.11"
+  },
+  "scripts": {
+    "build": "npm run build:types && npm run build:runtime",
+    "build:runtime": "esbuild src/vite.ts --bundle --packages=external --external:@ftslang/core --platform=node --target=node24 --format=esm --outfile=dist/vite.mjs --sourcemap",
+    "build:types": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "test": "npm run build -w @ftslang/core && npm run build -w @ftslang/build && vitest run test/unplugin.test.ts test/vite.test.ts"
+  },
+  "dependencies": {
+    "@ftslang/core": "0.0.1",
+    "@jridgewell/remapping": "2.3.5",
+    "@swc/core": "1.15.47",
+    "unplugin": "3.3.0"
+  },
+  "devDependencies": {
+    "@jridgewell/trace-mapping": "0.3.31",
+    "vite": "8.2.1",
+    "vitest": "4.1.10"
+  }
+}

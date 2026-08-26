@@ -9,6 +9,7 @@
   },
   "workspaces": [
     "packages/language-core",
+    "packages/build",
     "packages/language-server",
     "packages/vscode"
   ],

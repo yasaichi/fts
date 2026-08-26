@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "exclude": [
+    "test/fixtures/vite-project/src",
+    "test/fixtures/vite-project/test"
+  ],
+  "include": ["src", "test"]
+}
