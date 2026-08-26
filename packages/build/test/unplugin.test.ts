@@ -1,0 +1,32 @@
+import { describe as context, describe, expect, it } from 'vitest';
+import { ftsIdFilter } from '../src/unplugin.js';
+
+describe('ftsIdFilter', () => {
+  describe('include', () => {
+    context('with an .fts module carrying a query', () => {
+      it('includes the module', () => {
+        expect(ftsIdFilter.include.test('/project/src/index.fts?raw')).toBe(
+          true,
+        );
+      });
+    });
+
+    context('with an ordinary .ts module', () => {
+      it('does not include the module', () => {
+        expect(ftsIdFilter.include.test('/project/src/index.ts')).toBe(false);
+      });
+    });
+  });
+
+  describe('exclude', () => {
+    context('with an .fts module in node_modules', () => {
+      it('excludes the module', () => {
+        expect(
+          ftsIdFilter.exclude.test(
+            '/project/node_modules/dependency/index.fts',
+          ),
+        ).toBe(true);
+      });
+    });
+  });
+});

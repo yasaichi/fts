@@ -6,7 +6,7 @@ import type {
 import type { TypeScriptServiceScript } from '@volar/typescript';
 import type * as ts from 'typescript';
 import type { URI } from 'vscode-uri';
-import { lowerPipeline } from './features/pipeline-operator/lower.js';
+import { createPipelineVirtualTypeScript } from './features/pipeline-operator/editor-lowering.js';
 import { createIdentityLowering, type LoweredTypeScript } from './lowering.js';
 
 export const futureTypeScriptLanguageId = 'future-typescript';
@@ -69,14 +69,20 @@ export class FutureTypeScriptVirtualCode implements VirtualCode {
 
   public update(uri: URI, sourceSnapshot: IScriptSnapshot): void {
     const source = sourceSnapshot.getText(0, sourceSnapshot.getLength());
-    let lowered: LoweredTypeScript;
-    try {
-      lowered = lowerPipeline(source, uri.fsPath || uri.path);
-    } catch {
-      lowered = createIdentityLowering(source);
-    }
+    const lowered = createVirtualTypeScript(source, uri.fsPath || uri.path);
     this.mappings = lowered.mappings;
     this.snapshot = this.typescript.ScriptSnapshot.fromString(lowered.code);
+  }
+}
+
+function createVirtualTypeScript(
+  source: string,
+  fileName: string,
+): LoweredTypeScript {
+  try {
+    return createPipelineVirtualTypeScript(source, fileName);
+  } catch {
+    return createIdentityLowering(source);
   }
 }
 

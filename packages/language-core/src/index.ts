@@ -1,4 +1,7 @@
-export { lowerPipeline } from './features/pipeline-operator/lower.js';
+export {
+  type LoweredFutureTypeScript,
+  lowerFutureTypeScript,
+} from './build-lowering.js';
 export {
   createFutureTypeScriptLanguagePlugin,
   futureTypeScriptLanguageId,
