@@ -5,9 +5,9 @@ describe('ftsIdFilter', () => {
   describe('include', () => {
     context('with an .fts module carrying a query', () => {
       it('includes the module', () => {
-        expect(ftsIdFilter.include.test('/project/src/index.fts?raw')).toBe(
-          true,
-        );
+        expect(
+          '/project/src/index.fts?raw' |> ftsIdFilter.include.test(%),
+        ).toBe(true);
       });
     });
 

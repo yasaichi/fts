@@ -18,7 +18,7 @@
     "build:runtime": "esbuild src/vite.ts --bundle --packages=external --external:@ftslang/core --platform=node --target=node24 --format=esm --outfile=dist/vite.mjs --sourcemap",
     "build:types": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
-    "test": "npm run build -w @ftslang/core && npm run build -w @ftslang/build && vitest run test/unplugin.test.ts test/vite.test.ts"
+    "test": "npm run build -w @ftslang/core && npm run build -w @ftslang/build && vitest run --config vite.config.ts"
   },
   "dependencies": {
     "@ftslang/core": "0.0.1",

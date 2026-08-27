@@ -11,18 +11,35 @@ import { createIdentityLowering, type LoweredTypeScript } from './lowering.js';
 
 export const futureTypeScriptLanguageId = 'future-typescript';
 
+export function createFutureTypeScriptCompilerPlugin(
+  typescript: typeof ts,
+): LanguagePlugin<string, FutureTypeScriptVirtualCode> {
+  return createFutureTypeScriptPlugin(typescript, (fileName) => fileName);
+}
+
 export function createFutureTypeScriptLanguagePlugin(
   typescript: typeof ts,
 ): LanguagePlugin<URI, FutureTypeScriptVirtualCode> {
+  return createFutureTypeScriptPlugin(
+    typescript,
+    (uri) => uri.fsPath || uri.path,
+  );
+}
+
+function createFutureTypeScriptPlugin<ID>(
+  typescript: typeof ts,
+  fileNameOf: (id: ID) => string,
+): LanguagePlugin<ID, FutureTypeScriptVirtualCode> {
   return {
-    createVirtualCode(uri, languageId, snapshot) {
-      if (!isFutureTypeScript(uri, languageId)) {
+    createVirtualCode(id, languageId, snapshot) {
+      const fileName = fileNameOf(id);
+      if (!isFutureTypeScript(fileName, languageId)) {
         return undefined;
       }
-      return new FutureTypeScriptVirtualCode(typescript, uri, snapshot);
+      return new FutureTypeScriptVirtualCode(typescript, fileName, snapshot);
     },
-    getLanguageId(uri) {
-      if (uri.path.endsWith('.fts')) {
+    getLanguageId(id) {
+      if (fileNameOf(id).endsWith('.fts')) {
         return futureTypeScriptLanguageId;
       }
       return undefined;
@@ -44,8 +61,8 @@ export function createFutureTypeScriptLanguagePlugin(
         };
       },
     },
-    updateVirtualCode(uri, virtualCode, snapshot) {
-      virtualCode.update(uri, snapshot);
+    updateVirtualCode(id, virtualCode, snapshot) {
+      virtualCode.update(fileNameOf(id), snapshot);
       return virtualCode;
     },
   };
@@ -60,16 +77,16 @@ export class FutureTypeScriptVirtualCode implements VirtualCode {
 
   public constructor(
     private readonly typescript: typeof ts,
-    uri: URI,
+    fileName: string,
     sourceSnapshot: IScriptSnapshot,
   ) {
     this.snapshot = sourceSnapshot;
-    this.update(uri, sourceSnapshot);
+    this.update(fileName, sourceSnapshot);
   }
 
-  public update(uri: URI, sourceSnapshot: IScriptSnapshot): void {
+  public update(fileName: string, sourceSnapshot: IScriptSnapshot): void {
     const source = sourceSnapshot.getText(0, sourceSnapshot.getLength());
-    const lowered = createVirtualTypeScript(source, uri.fsPath || uri.path);
+    const lowered = createVirtualTypeScript(source, fileName);
     this.mappings = lowered.mappings;
     this.snapshot = this.typescript.ScriptSnapshot.fromString(lowered.code);
   }
@@ -86,6 +103,6 @@ function createVirtualTypeScript(
   }
 }
 
-function isFutureTypeScript(uri: URI, languageId: string): boolean {
-  return languageId === futureTypeScriptLanguageId || uri.path.endsWith('.fts');
+function isFutureTypeScript(fileName: string, languageId: string): boolean {
+  return languageId === futureTypeScriptLanguageId || fileName.endsWith('.fts');
 }

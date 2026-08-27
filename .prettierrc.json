@@ -1,0 +1,12 @@
+{
+  "singleQuote": true,
+  "overrides": [
+    {
+      "files": ["packages/*/src/**/*.fts", "packages/*/test/**/*.fts"],
+      "excludeFiles": "packages/*/test/fixtures/**/*.fts",
+      "options": {
+        "parser": "babel-ts"
+      }
+    }
+  ]
+}

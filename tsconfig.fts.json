@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["packages/*/src/**/*.fts", "packages/*/test/**/*.fts"],
+  "exclude": ["packages/*/test/fixtures/**/*.fts"]
+}
