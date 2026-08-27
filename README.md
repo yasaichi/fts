@@ -21,11 +21,13 @@ preserves that ecosystem, but can take over control flow, errors, concurrency,
 resources, and dependency injection until removing it requires an application
 rewrite.
 
-Waiting for standards avoids both forms of lock-in but prevents ideas from being
-tested in real applications. FTS instead uses existing JavaScript, Web, and
-TypeScript capabilities wherever possible and fills only the missing syntax and
-analysis with removable development-time tooling. Ordinary TypeScript remains
-the compatibility and exit boundary.
+Standards need implementation and usage feedback before broad adoption, while
+TypeScript and JavaScript engines reasonably wait for proposals to stabilize
+before supporting them. This makes proposed features difficult to evaluate in
+real typed applications when that feedback is most useful. FTS provides a
+versioned, opt-in, and removable bridge for that period, turning editor, build,
+test, and migration experience into feedback for upstream proposals. Ordinary
+TypeScript remains the compatibility and exit boundary.
 
 ## How it works
 
