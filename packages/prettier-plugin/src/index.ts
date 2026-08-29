@@ -7,7 +7,6 @@ const plugin = {
       extensions: ['.fts'],
       name: 'Future TypeScript',
       parsers: ['fts'],
-      vscodeLanguageIds: ['future-typescript'],
     },
   ],
   parsers: {

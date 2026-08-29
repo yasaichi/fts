@@ -1,25 +1,38 @@
-import { format, getFileInfo } from 'prettier';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import plugin from '../src/index.js';
+
+const pluginPath = fileURLToPath(new URL('../dist/index.js', import.meta.url));
+const prettierPath = fileURLToPath(
+  new URL('../../../node_modules/prettier/bin/prettier.cjs', import.meta.url),
+);
+
+const runPrettier = (argument: '--check' | '--write', filePath: string) =>
+  spawnSync(
+    process.execPath,
+    [prettierPath, '--plugin', pluginPath, argument, filePath],
+    { encoding: 'utf8' },
+  );
 
 describe('FTS Prettier plugin', () => {
-  it('selects the FTS parser for .fts files', async () => {
-    const information = await getFileInfo('/workspace/example.fts', {
-      plugins: [plugin],
-    });
+  it('formats .fts files through the Prettier CLI', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'fts-prettier-plugin-'));
+    const filePath = join(directory, 'example.fts');
 
-    expect(information.inferredParser).toBe('fts');
-  });
+    try {
+      writeFileSync(filePath, 'const result={ id:1}|>format(%)\n');
 
-  it('formats Future TypeScript with its file parser', async () => {
-    const source = 'const result={ id:1}|>format(%)\n';
-
-    const formatted = await format(source, {
-      parser: 'fts',
-      plugins: [plugin],
-      singleQuote: true,
-    });
-
-    expect(formatted).toBe('const result = { id: 1 } |> format(%);\n');
+      expect(runPrettier('--check', filePath).status).toBe(1);
+      expect(runPrettier('--write', filePath).status).toBe(0);
+      expect(readFileSync(filePath, 'utf8')).toBe(
+        'const result = { id: 1 } |> format(%);\n',
+      );
+      expect(runPrettier('--check', filePath).status).toBe(0);
+    } finally {
+      rmSync(directory, { force: true, recursive: true });
+    }
   });
 });
