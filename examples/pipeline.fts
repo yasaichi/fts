@@ -1,12 +1,8 @@
-declare const input: string
-declare function parse(value: string): { id: number }
-declare function format(value: { id: number }): string
+declare const input: string;
+declare function parse(value: string): { id: number };
+declare function format(value: { id: number }): string;
 
-const result = input
-  |> parse(%)
-  |> format(%)
+const result = input |> parse(%) |> format(%);
 
 // This error is intentional: hover result above, then inspect this diagnostic.
-const broken = input
-  |> parse(%)
-  |> Math.round(%)
+const broken = input |> parse(%) |> Math.round(%);
