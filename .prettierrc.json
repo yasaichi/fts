@@ -1,0 +1,11 @@
+{
+  "plugins": ["@ftslang/prettier-plugin"],
+  "overrides": [
+    {
+      "files": "*.fts",
+      "options": {
+        "singleQuote": true
+      }
+    }
+  ]
+}
