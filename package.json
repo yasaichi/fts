@@ -17,8 +17,8 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "check": "npm run check --workspaces --if-present",
-    "format": "biome check --write",
-    "format:check": "biome check",
+    "format": "concurrently --kill-others-on-fail --names biome,fts \"biome check --write\" \"npm run format:fts\"",
+    "format:check": "concurrently --kill-others-on-fail --names biome,fts \"biome check\" \"npm run format:fts:check\"",
     "format:fts": "npm run build -w @ftslang/prettier-plugin && prettier --plugin @ftslang/prettier-plugin --write examples/pipeline.fts",
     "format:fts:check": "npm run build -w @ftslang/prettier-plugin && prettier --plugin @ftslang/prettier-plugin --check examples/pipeline.fts",
     "hooks:install": "git config set --local hook.fts-verify.command 'npm run verify:commit' && git config set --local --all hook.fts-verify.event pre-commit",
