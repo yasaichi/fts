@@ -15,12 +15,10 @@
     "node": ">=24.11"
   },
   "scripts": {
-    "build": "npm run build:types && npm run build:runtime && npm run build:semantic-checker",
-    "build:runtime": "esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --sourcemap",
-    "build:semantic-checker": "esbuild src/check-fts.ts --bundle --packages=external --platform=node --target=node24 --format=esm --outfile=dist/check-fts.mjs --sourcemap",
+    "build": "npm run build:types && esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --sourcemap",
     "build:types": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
-    "test": "npm run build:semantic-checker && vitest run"
+    "test": "vitest run"
   },
   "dependencies": {
     "@babel/core": "8.0.1",

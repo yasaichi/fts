@@ -1,0 +1,27 @@
+{
+  "name": "@ftslang/prettier-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Prettier language support for fts",
+  "main": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "engines": {
+    "node": ">=24.11"
+  },
+  "scripts": {
+    "build": "concurrently --kill-others-on-fail --names types,runtime \"npm run build:types\" \"npm run build:runtime\"",
+    "build:runtime": "esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=esm --outfile=dist/index.mjs --sourcemap",
+    "build:types": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "prettier": "3.9.0"
+  }
+}

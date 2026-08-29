@@ -1,11 +1,11 @@
 {
-  "singleQuote": true,
+  "plugins": ["@ftslang/prettier-plugin"],
   "overrides": [
     {
-      "files": ["packages/*/src/**/*.fts", "packages/*/test/**/*.fts"],
-      "excludeFiles": "packages/*/test/fixtures/**/*.fts",
+      "files": "*.fts",
       "options": {
-        "parser": "babel-ts"
+        "parser": "fts",
+        "singleQuote": true
       }
     }
   ]

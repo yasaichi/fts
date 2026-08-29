@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { SourceMap } from '@volar/language-core';
 import * as typescript from 'typescript';
 import { describe, expect, it } from 'vitest';
+import { URI } from 'vscode-uri';
 import { FutureTypeScriptVirtualCode } from '../src/language-plugin.js';
 
 describe('FutureTypeScriptVirtualCode', () => {
@@ -11,7 +12,7 @@ describe('FutureTypeScriptVirtualCode', () => {
   );
   const virtualCode = new FutureTypeScriptVirtualCode(
     typescript,
-    '/workspace/incomplete.fts',
+    URI.file('/workspace/incomplete.fts'),
     typescript.ScriptSnapshot.fromString(source),
   );
   describe('snapshot', () => {
