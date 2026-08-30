@@ -30,9 +30,11 @@ export function createFutureTypeScriptLanguagePlugin(
     typescript: {
       extraFileExtensions: [
         {
-          extension: 'fts',
-          isMixedContent: true,
-          scriptKind: typescript.ScriptKind.TS,
+          extension: '.fts',
+          isMixedContent: false,
+          // TypeScript only discovers custom tsconfig roots as deferred files;
+          // getServiceScript below still exposes their virtual code as TypeScript.
+          scriptKind: typescript.ScriptKind.Deferred,
         },
       ],
       getServiceScript(root): TypeScriptServiceScript {

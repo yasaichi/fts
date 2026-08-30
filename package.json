@@ -11,6 +11,7 @@
     "packages/language-core",
     "packages/build",
     "packages/language-server",
+    "packages/check",
     "packages/prettier-plugin",
     "packages/vscode"
   ],
