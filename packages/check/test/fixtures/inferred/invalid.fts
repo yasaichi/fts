@@ -1,0 +1,6 @@
+declare const input: string
+declare function parse(value: string): { id: number }
+
+export const invalid = input
+  |> parse(%)
+  |> Math.round(%)

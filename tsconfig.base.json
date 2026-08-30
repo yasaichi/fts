@@ -5,7 +5,8 @@
     "noEmit": true,
     "paths": {
       "@ftslang/build/vite": ["./packages/build/src/vite.ts"],
-      "@ftslang/core": ["./packages/language-core/src/index.ts"]
+      "@ftslang/core": ["./packages/language-core/src/index.ts"],
+      "@ftslang/server/check": ["./packages/language-server/src/check.ts"]
     },
     "skipLibCheck": true,
     "strict": true,

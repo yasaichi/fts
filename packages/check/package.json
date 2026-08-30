@@ -1,0 +1,32 @@
+{
+  "name": "@ftslang/check",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Semantic diagnostics for fts projects",
+  "main": "./dist/check.cjs",
+  "exports": {
+    ".": {
+      "types": "./dist/check.d.ts",
+      "default": "./dist/check.cjs"
+    }
+  },
+  "bin": {
+    "fts-check": "./bin/fts-check.cjs"
+  },
+  "engines": {
+    "node": ">=24.11"
+  },
+  "scripts": {
+    "build": "npm run build:types && esbuild src/check.ts --bundle --packages=external --external:@ftslang/server/check --platform=node --target=node24 --format=cjs --outfile=dist/check.cjs --sourcemap",
+    "build:types": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "test": "npm run build -w @ftslang/core && npm run build -w @ftslang/server && npm run build -w @ftslang/check && vitest run"
+  },
+  "dependencies": {
+    "@ftslang/server": "0.0.1"
+  },
+  "devDependencies": {
+    "vitest": "4.1.10"
+  }
+}
