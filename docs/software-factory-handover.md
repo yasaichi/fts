@@ -1,447 +1,794 @@
-# Software Factory Design Model — Handover
+# Software Factory Research Handover — Evolvability and Intent Recoverability
 
 ## Purpose
 
-This document records the design model we want to use when experimenting with an
-AI-driven software factory for FTS.
+This document records the research model that should guide the next stage of the
+FTS software-factory experiment.
 
-The central claim is that a useful software factory must optimize for more than
-"the requested behavior exists and the tests pass." A system can satisfy today's
-requirements while steadily losing the domain model, the rationale behind its
-boundaries, and its ability to absorb likely future changes.
+The central problem is no longer "how do we make an AI write code with better
+taste?" That framing was useful for discovering the problem, but it is not the
+research target.
 
-The factory should therefore preserve and evaluate two different properties:
+The research target is to make two properties of software design explicit and
+evaluable:
 
-1. **Intent legibility** — can a future maintainer recover why the system has
-   this shape?
-2. **Evolvability** — does the current shape keep the expected cost of likely
-   future changes low?
+1. **Evolvability** — how costly is the design to change under the futures we
+   currently believe are plausible?
+2. **Intent recoverability** — how costly and error-prone is it for a future
+   maintainer or agent to reconstruct why the design has its current shape?
 
-These are related but not identical.
+Current spec-driven agent workflows are good at evaluating present behavioral
+correctness. The hypothesis here is that they are missing explicit evaluators
+for these two properties.
 
----
-
-## 1. The working definition of design sense
-
-What engineers often call "taste" or "design sense" can be decomposed into a
-more operational model:
-
-> Design sense is the ability to predict likely future changes reasonably well,
-> balance their expected cost against present complexity and the cost of being
-> wrong, and encode the resulting judgment in a form that future maintainers can
-> reconstruct.
-
-This has four parts:
-
-- **Forecast quality**: which changes are likely, unlikely, or uncertain?
-- **Trade-off quality**: which costs matter most if those changes occur?
-- **Robustness to forecast error**: how expensive is it if the prediction is
-  wrong?
-- **Intent legibility**: can another engineer recover the model and trade-offs
-  that led to the design?
-
-A design can fail on any one of these dimensions.
-
-Examples:
-
-- A highly abstract design can have good internal consistency but poor forecast
-  quality: it paid for many future changes that never arrived.
-- A simple design can be locally easy to read but have poor evolvability if it
-  ignores a high-probability change direction.
-- A structurally good design can still accumulate intent debt if nobody can
-  recover why its boundaries exist.
+The purpose of the factory is to investigate whether existing software
+architecture research can be operationalized more directly now that LLMs can
+read large codebases, reconstruct rationale, plan changes, and cheaply simulate
+counterfactual modifications.
 
 ---
 
-## 2. "Beauty" as low intent-reconstruction cost
+## 1. Core model
 
-A useful working interpretation of "beautiful code" is:
+At design time `t`, let:
 
-> The designer's understanding of the world, assumptions, and accepted
-> trade-offs can be reconstructed from the code structure at low cost.
+- `D` be the current design and implementation structure;
+- `A` be supporting artifacts such as tests, comments, ADRs, specifications,
+  issue history, and documentation;
+- `I_t` be the intent available at design time: assumptions, domain
+  understanding, constraints, goals, trade-offs, and the reasoning that led to
+  the design;
+- `Δ_i` be a possible future change scenario;
+- `P_t(Δ_i)` be the current belief about the probability or relative frequency
+  of that future change;
+- `U_t(Δ_i | D)` be the loss or utility associated with absorbing that change
+  under design `D`.
 
-This does not mean beauty is identical to code style, terseness, abstraction,
-or any named design principle.
-
-The important question is whether a future maintainer can infer things such as:
-
-- What concepts did the designer believe were first-class domain concepts?
-- Which parts were expected to change independently?
-- Which boundaries were deliberate rather than accidental?
-- Which compromises were accepted?
-- Which behaviors are contractual rather than incidental?
-- Which complexity exists to protect a likely future change direction?
-
-Names, types, modules, classes, tests, comments, and ADRs are all different
-ways to encode parts of that intent.
-
-A good domain model is therefore not merely an object-oriented representation
-of today's requirements. It is a compressed representation of the current
-understanding of the problem and, often, of expected future change structure.
-
----
-
-## 3. Evolvability as expected future change cost
-
-Intent legibility is only one side of good design. A second property is whether
-the design is cheap to change in the futures we currently consider plausible.
-
-For a design `D`, a useful conceptual model is:
+A useful working decomposition of future software cost is:
 
 ```text
-ExpectedChangeCost(D)
-  = sum over scenarios i:
-      P(change_i) * Cost(change_i | D)
+C_t(D, A)
+  =
+    Σ_i P_t(Δ_i) * U_t(Δ_i | D)
+    +
+    R(I_t | D, A)
 ```
 
-In practice the cost function is multi-dimensional. It can include:
+where:
 
-- implementation effort,
-- number of modules or public interfaces touched,
-- regression risk,
-- migration cost,
-- operational risk,
-- compatibility breakage,
-- cognitive load,
-- runtime cost,
-- delay to shipping.
+- the first term is **expected future change loss**;
+- `R(I_t | D, A)` is **intent-reconstruction cost**: the cost and risk of
+  recovering the design-time understanding and trade-offs from the available
+  artifacts.
 
-Not all of these should necessarily be collapsed into a single scalar. Some are
-hard constraints; others are weighted preferences.
+This is a working research model, not a claim that prior literature uses this
+exact equation.
 
-The important point is that "extensible" is not universally good. Extensibility
-is valuable only when it cheaply protects changes that are sufficiently likely
-or sufficiently costly.
+It is valuable because it separates two things that are often collapsed into
+words such as "good design", "clean code", "taste", "maintainability", or
+"technical debt".
 
 ---
 
-## 4. Present complexity and the cost of being wrong
+## 2. Evolvability
 
-A more complete loss model is:
+### 2.1 Definition
+
+For this research, evolvability is the degree to which a design keeps expected
+loss low across plausible future changes.
+
+Conceptually:
 
 ```text
-Loss(D)
-  = PresentComplexity(D)
-  + IntentReconstructionCost(D)
-  + ExpectedFutureChangeCost(D)
+ExpectedFutureChangeLoss(D)
+  = Σ_i P_t(Δ_i) * U_t(Δ_i | D)
 ```
 
-This explains several familiar design heuristics.
+This means a design is not "evolvable" in the abstract.
 
-### YAGNI
+It is evolvable **relative to a model of the future and a model of what costs
+matter**.
 
-YAGNI is a warning against assigning too much probability or utility to
-speculative futures and paying present complexity for them.
+A generic extension point that protects changes we do not expect may be worse
+than a simpler design. Conversely, a simple implementation that makes a
+high-probability change expensive may be locally elegant but globally poor.
 
-### Architecture astronauts
+### 2.2 Change distribution
 
-An "architecture astronaut" can be understood as overestimating the probability
-or value of many possible future changes and therefore paying excessive present
-complexity for optionality that is never exercised.
+The factory therefore needs an explicit representation of current beliefs about
+future change.
 
-### Premature abstraction
+That model may contain:
 
-When evidence about the change distribution is weak, prematurely locking in an
-abstraction amounts to acting on an uncertain forecast as though it were known.
+- change scenario;
+- time horizon;
+- estimated probability or frequency;
+- confidence;
+- evidence;
+- affected concepts and boundaries;
+- assumptions;
+- date of last review.
 
-### Rule of Three
+Exact probabilities are not mandatory. `high / medium / low / unknown` plus a
+confidence level may initially be more honest than false precision.
 
-Waiting for repeated examples before abstracting can be understood as waiting
-for more observations before updating the change model.
+### 2.3 Utility / loss model
 
-### Refactoring
+The second input is what we care about when a change happens.
 
-Refactoring is not merely cosmetic cleanup. It is often an update of the code
-structure after our posterior understanding of the domain or its likely changes
-has changed.
+Possible dimensions include:
+
+- implementation effort;
+- number of modules changed;
+- public interfaces changed;
+- migration cost;
+- compatibility breakage;
+- regression risk;
+- operational risk;
+- runtime performance;
+- source compatibility;
+- cognitive load;
+- time to ship;
+- removability;
+- new coupling.
+
+Do not assume they should all be collapsed into one number.
+
+A more realistic ordering may be:
+
+```text
+hard invariants
+    ↓
+risk constraints
+    ↓
+soft-objective trade-offs
+```
+
+For example, a design that violates an externally promised compatibility
+boundary should not win merely because it reduces implementation effort.
+
+### 2.4 Present cost and forecast error
+
+Design selection also has to account for the cost paid now.
+
+A more complete decision loss can be represented as:
+
+```text
+DecisionLoss(D)
+  =
+    PresentComplexity(D)
+    +
+    ExpectedFutureChangeLoss(D)
+    +
+    IntentReconstructionCost(D, A)
+```
+
+This is important because otherwise "evolvability" degenerates into maximum
+generic extensibility.
+
+YAGNI, premature abstraction, the Rule of Three, and the "architecture
+astronaut" failure mode can all be interpreted as warnings about paying too
+much present cost for an uncertain future distribution.
+
+The factory must therefore ask not only:
+
+> What if our predicted change happens?
+
+but also:
+
+> What if it never happens, or the opposite change happens?
+
+Reversibility and stranded complexity are first-class concerns.
 
 ---
 
-## 5. Intent debt and technical debt
+## 3. Intent recoverability
 
-We should keep two debts conceptually separate.
+### 3.1 Definition
 
-### Intent debt
+Intent recoverability is the degree to which another maintainer can reconstruct
+the understanding and trade-offs that produced the current design.
 
-Intent debt is the future reasoning cost caused by losing the rationale,
-assumptions, domain understanding, or accepted trade-offs behind the current
-design.
+The relevant question is not merely whether documentation exists.
 
-It increases the cost and risk of answering questions such as:
+It is:
 
-- Is this boundary essential or accidental?
-- Is this duplication deliberate?
-- Is this behavior a contract?
-- What future did the original design optimize for?
-- Which compromise was knowingly accepted?
+> Given the available code and repository artifacts, how much effort,
+> ambiguity, and error are involved in recovering the design intent?
 
-### Technical debt
+Conceptually:
 
-For this factory, "technical debt" should mean the avoidable increase in future
-change cost caused by the current technical structure.
+```text
+R(I_t | D, A)
+```
 
-A useful conceptual form is:
+is low when the intent can be reconstructed cheaply and accurately.
+
+### 3.2 What counts as intent
+
+`I_t` includes at least:
+
+- domain model and ontology;
+- assumptions about what is stable and what changes independently;
+- goals;
+- constraints;
+- rejected alternatives;
+- accepted compromises;
+- reasons for non-obvious complexity;
+- beliefs about likely future changes;
+- the utility or risk model used to choose among alternatives.
+
+This is broader than "comments explaining the code".
+
+### 3.3 Code and artifacts are different projections of intent
+
+Different mechanisms encode different parts of `I_t`:
+
+- names and types encode concepts;
+- module/class boundaries encode expected independence of change;
+- domain models encode current understanding of the problem;
+- tests encode behavior considered contractual;
+- comments encode local rationale not obvious from implementation;
+- ADRs encode decisions, alternatives, assumptions, and consequences;
+- executable architecture checks encode invariants.
+
+The goal should not be to maximize documentation volume.
+
+The goal should be to minimize total reconstruction cost across these artifacts.
+
+### 3.4 Intent debt
+
+Margaret-Anne Storey's 2026 "triple debt" framing distinguishes technical debt,
+cognitive debt, and intent debt. Intent debt is the absence of clear goals,
+constraints, and rationale that explain what the system is for and how it
+should evolve.
+
+This research adopts that distinction because it prevents intent loss from being
+treated as merely another code-smell metric.
+
+Reference:
+
+- Margaret-Anne Storey, "From Technical Debt to Cognitive and Intent Debt",
+  ACM Queue, 2026:
+  https://doi.org/10.1145/3807966
+
+---
+
+## 4. Existing research for evolvability
+
+The change-model side is not a new problem. Important parts already exist in
+software architecture research.
+
+### 4.1 ALMA — Architecture-Level Modifiability Analysis
+
+ALMA is explicitly scenario-based.
+
+Its main steps are:
+
+1. select the analysis goal;
+2. describe the architecture;
+3. elicit change scenarios;
+4. evaluate the effect of those scenarios;
+5. interpret the result.
+
+It supports goals including maintenance prediction, identification of
+inflexibility, and comparison of alternative architectures.
+
+This is directly relevant to `P_t(Δ_i)` and `U_t(Δ_i | D)`: the architecture
+is evaluated against concrete possible future changes rather than against a
+generic notion of cleanliness.
+
+Reference:
+
+- Bengtsson, Lassing, Bosch, van Vliet, "Architecture-level modifiability
+  analysis (ALMA)", Journal of Systems and Software, 2004:
+  https://doi.org/10.1016/S0164-1212(03)00080-3
+
+### 4.2 ATAM — Architecture Tradeoff Analysis Method
+
+ATAM evaluates an architecture against multiple competing quality attributes
+such as modifiability, security, performance, and availability.
+
+Its contribution here is that "good architecture" is explicitly
+multi-objective. Improving one characteristic can make another worse.
+
+Reference:
+
+- Kazman, Klein, Clements et al., "The Architecture Tradeoff Analysis Method":
+  https://www.sei.cmu.edu/library/atam-method-for-architecture-evaluation/
+
+### 4.3 CBAM — Cost Benefit Analysis Method
+
+CBAM adds economic reasoning to architecture decisions, associating
+architectural strategies with priorities, costs, benefits, uncertainty, and
+return on investment.
+
+It is relevant to the utility side of the model because a technical design
+choice only makes sense relative to the value assigned to its consequences.
+
+References:
+
+- Asundi, Kazman, Klein, "Using Economic Considerations to Choose Among
+  Architecture Design Alternatives":
+  https://www.sei.cmu.edu/library/using-economic-considerations-to-choose-among-architecture-design-alternatives/
+- Nord et al., "Integrating ATAM with CBAM":
+  https://sei.cmu.edu/library/integrating-the-architecture-tradeoff-analysis-method-atam-with-the-cost-benefit-analysis-method-cbam/
+
+### 4.4 Evolutionary Architecture and fitness functions
+
+Evolutionary Architecture defines architecture as guided incremental change
+across multiple dimensions and uses fitness functions to protect important
+architectural characteristics continuously.
+
+This is highly relevant to the executable part of the utility model.
+
+References:
+
+- Ford, Parsons, Kua, Sadalage, "Building Evolutionary Architectures":
+  https://evolutionaryarchitecture.com/
+- précis:
+  https://evolutionaryarchitecture.com/precis.html
+
+The important limitation for this project is that many architectural concerns
+we care about are not yet deterministic predicates.
+
+---
+
+## 5. Existing research for intent recoverability
+
+### 5.1 Design rationale and architectural knowledge
+
+Software architecture research has long recognized that the architecture itself
+does not contain all information required to understand why it exists.
+
+Decision rationale, assumptions, alternatives, and context must often be
+captured separately.
+
+FTS already follows this principle in ADR 1:
+
+> durable context is needed for choices that cannot be recovered from the
+> implementation alone.
+
+The research question now is whether LLMs let us evaluate **recoverability
+itself**, rather than prescribing one documentation mechanism.
+
+### 5.2 LLM generation and recovery of design rationale
+
+A 2026 ACM TOSEM study directly evaluates LLMs for generating and recovering
+software-architecture design rationale.
+
+The reported results are important precisely because they are imperfect:
+LLMs recovered substantial rationale, but precision was low and some generated
+arguments were misleading.
+
+This means LLMs are promising as reconstruction instruments but must not be
+treated as ground-truth oracles.
+
+Reference:
+
+- Zhou et al., "Using LLMs in Generating Design Rationale for Software
+  Architecture Decisions", ACM TOSEM, 2026:
+  https://doi.org/10.1145/3785010
+
+---
+
+## 6. What LLMs change for intent evaluation
+
+Historically, intent preservation was mostly framed as:
+
+> Did we document the rationale sufficiently?
+
+LLMs create a different possible evaluation:
+
+> Can an independent agent reconstruct the rationale from the artifacts we
+> actually left behind?
+
+That allows a **blind reconstruction test**.
+
+### 6.1 Blind intent reconstruction
+
+The evaluator receives:
+
+- code;
+- ordinary repository structure;
+- tests;
+- normal documentation that future maintainers would naturally have;
+
+but does **not** receive the ground-truth rationale under evaluation.
+
+It is asked to reconstruct:
+
+- domain concepts;
+- intentional boundaries;
+- expected independent change directions;
+- non-obvious trade-offs;
+- assumptions;
+- deliberate compromises.
+
+Its reconstruction is then compared with the recorded design-time intent.
+
+### 6.2 Possible observables
+
+Intent recoverability is unlikely to reduce to one perfect scalar, but useful
+observables include:
+
+- recall of ground-truth intent;
+- false or invented rationale;
+- uncertainty;
+- disagreement between independent evaluator runs;
+- amount of context needed;
+- number of files that must be inspected;
+- need to consult an ADR;
+- concepts consistently misunderstood;
+- whether code structure alone communicates the intended model.
+
+This is materially different from a complexity metric.
+
+It attempts to measure the thing we actually care about: recoverability of the
+latent decision model.
+
+### 6.3 Research caution
+
+LLMs can hallucinate plausible rationale.
+
+Therefore:
+
+- evaluator output must be compared to recorded ground truth;
+- confidence matters;
+- multi-run disagreement is a useful signal;
+- a convincing explanation is not evidence that the explanation was intended;
+- the experiment should distinguish "recoverable intent" from "plausible story
+  generation".
+
+---
+
+## 7. What LLMs change for evolvability evaluation
+
+This may be the more important shift.
+
+Traditional scenario-based architecture evaluation relied heavily on architects
+mentally estimating the ripple effects of future changes.
+
+An LLM-based coding agent can make this analysis far cheaper.
+
+### 7.1 Counterfactual change simulation
+
+For each future-change scenario, an agent can:
+
+1. inspect the current design;
+2. produce a concrete implementation plan;
+3. optionally implement the scenario in an isolated branch/worktree;
+4. run tests and architecture checks;
+5. measure the resulting change.
+
+Instead of asking:
+
+> Would this architecture make scenario X difficult?
+
+we can increasingly ask:
+
+> Try scenario X against candidate architecture A and candidate architecture B.
+> What actually has to change?
+
+### 7.2 Observable scenario cost
+
+Potential measurements include:
+
+- files/modules touched;
+- public interfaces changed;
+- existing tests rewritten versus extended;
+- dependency changes;
+- new coupling;
+- migration steps;
+- compatibility breaks;
+- implementation effort or agent steps;
+- required context;
+- failed invariants;
+- reversibility.
+
+This turns part of architecture analysis from expert prediction into a cheap
+counterfactual experiment.
+
+### 7.3 Sampling many futures
+
+LLMs also make it cheap to evaluate many scenarios.
+
+This means the factory can potentially compare designs over a distribution of
+changes rather than one hand-picked example.
+
+However, the LLM must not be allowed to invent both the future distribution and
+the winning architecture without independent evidence. That would create a
+self-justifying evaluator.
+
+The future-change model should therefore be grounded in sources such as:
+
+- product roadmap;
+- issue history;
+- Git history;
+- previous migrations;
+- upstream proposal activity;
+- incidents;
+- domain-expert beliefs;
+- explicit uncertainty.
+
+### 7.4 Updating the prior
+
+The factory should eventually compare forecasts with what actually happened.
+
+For example:
+
+```text
+forecast:
+  proposal semantic churn = high
+
+observed over 12 months:
+  5 semantic migrations
+
+→ strengthen or maintain belief
+```
+
+or:
+
+```text
+forecast:
+  build-host replacement = high
+
+observed:
+  no change for 3 years
+
+→ lower probability; inspect whether abstraction is stranded complexity
+```
+
+The long-term loop is therefore not static architecture governance. It is
+forecast calibration.
+
+---
+
+## 8. Agentic fitness functions are adjacent, not sufficient
+
+Recent "agentic fitness function" work extends deterministic architecture checks
+with calibrated LLM judgments for concerns such as boundary fidelity, semantic
+contract drift, workflow coupling, and stale ADR assumptions.
+
+This is useful because it shows how to make some judgment-heavy architecture
+concerns continuously observable.
+
+Reference:
+
+- Mahato, Sieczkowski, Kuppusamy, "Agentic Fitness Functions: Extending
+  Evolutionary Architecture Beyond Deterministic Rules", 2026:
+  https://www.infoq.com/articles/agentic-fitness-functions-evolutionary-architecture/
+
+But this project should go further than "LLM as architecture-review judge".
+
+The research target is:
+
+- **intent reconstruction** as an explicit evaluation problem; and
+- **future-change simulation under an explicit distribution and utility model**
+  as an explicit evaluation problem.
+
+---
+
+## 9. The two evaluators
+
+The factory should conceptually have two separate evaluators.
+
+```text
+                     candidate design
+                           |
+              +------------+------------+
+              |                         |
+              v                         v
+     Intent Recoverability        Evolvability
+          evaluator                 evaluator
+              |                         |
+     blind reconstruction        future scenarios
+     against ground truth              ×
+              |                    utility model
+              |                         |
+              v                         v
+       reconstruction cost       expected change loss
+              +------------+------------+
+                           |
+                           v
+                    design decision
+```
+
+These evaluators should not be collapsed prematurely.
+
+A design can be:
+
+- easy to understand but expensive to evolve;
+- hard to understand but accidentally resilient to likely changes;
+- good on both;
+- bad on both.
+
+That distinction is analytically useful.
+
+---
+
+## 10. Relationship to technical debt
+
+This project should avoid defining all future cost as technical debt.
+
+Some change cost is inherent in the domain.
+
+A useful conceptual definition is:
 
 ```text
 TechnicalDebt(D)
-  = FutureCost(D) - FutureCost(realistic better alternative)
+  =
+    FutureChangeCost(D)
+    -
+    FutureChangeCost(realistic better alternative)
 ```
 
-The comparison must be against a realistic alternative available under the
-same information, time, and budget constraints. Otherwise inherent domain
-complexity is incorrectly classified as debt.
+where the comparison is against an alternative that was realistically available
+under the same information, time, and budget constraints.
 
-Intent debt can contribute to technical debt, because future changes become
-more expensive when the reason for the current structure must first be
-rediscovered, but they are not the same thing.
+Intent debt is separate:
+
+```text
+IntentDebt
+  ≈ avoidable increase in future reasoning cost
+     caused by missing or unrecoverable intent
+```
+
+The two interact because poor intent recoverability makes future modification
+more expensive and riskier.
 
 ---
 
-## 6. Why current spec-driven agent workflows are insufficient
+## 11. Why current spec-driven agent workflows are insufficient
 
-Many agentic development workflows optimize roughly for:
+A common loop is:
 
 ```text
 requirement
+  -> plan
   -> implementation
   -> tests pass
   -> acceptance
 ```
 
-This is effective at accelerating implementation of current requirements, but
-it does not automatically preserve:
+This is a fast version of optimizing current contractual behavior.
 
-- the domain model,
-- the expected direction of future change,
-- the assumptions behind current boundaries,
-- the trade-offs that justified current complexity,
-- the costs we intentionally chose to optimize.
+It does not necessarily preserve:
 
-The failure mode resembles conventional delivery where acceptance tests prove
-that the commissioned behavior exists while the system gradually becomes a
-collection of implemented features rather than an evolving model.
+- a domain model;
+- design rationale;
+- assumptions about future change;
+- utility trade-offs;
+- knowledge of which boundaries are intentional.
 
-The problem is not that tests are unimportant. Tests are excellent executable
-records of behavior we intend to preserve. The problem is that they mostly
-encode current behavioral constraints, not the design's forecast and utility
-model.
+The failure mode is a system that contains all commissioned features and passing
+tests but no coherent model of how the problem should continue to evolve.
+
+This is precisely why the research must not stop at "better specs" or "more
+architecture rules".
 
 ---
 
-## 7. What the factory should make first-class
+## 12. Research questions
 
-The factory should maintain at least four categories of durable knowledge.
+The next work should be framed around these questions before implementation.
 
-### 7.1 Current requirements
+### RQ1 — Intent recoverability
 
-What must the system do now?
+Can we operationalize `R(I_t | D, A)` well enough to compare two designs or
+two versions of a repository?
 
-This is the area current spec-driven tooling already handles reasonably well.
+Sub-questions:
 
-### 7.2 Change model
+- What is the ground-truth representation of intent?
+- Which parts should be recoverable from code and which from ADRs/comments?
+- Which observable proxies correlate with human judgments of recoverability?
+- How stable are results across models and runs?
+- How do we distinguish true recovery from plausible hallucinated rationale?
 
-What changes do we currently believe are likely?
+### RQ2 — Evolvability
 
-Each scenario should be able to record:
-
-- description,
-- affected concepts or boundaries,
-- time horizon,
-- estimated probability or frequency,
-- confidence,
-- evidence,
-- assumptions,
-- date of last review.
-
-Exact probabilities are optional at first. Relative buckets such as
-`high / medium / low` plus confidence may be more honest.
-
-### 7.3 Utility model
-
-What costs do we care about, and how strongly?
-
-Separate:
-
-- hard constraints,
-- risk thresholds,
-- soft objectives.
-
-Candidate dimensions include:
-
-- change locality,
-- public API stability,
-- source compatibility,
-- runtime dependencies,
-- performance,
-- correctness,
-- operational risk,
-- implementation speed,
-- conceptual complexity,
-- removability,
-- migration cost.
-
-### 7.4 Decision rationale
-
-Why did we choose this design given the change and utility models available at
-the time?
-
-FTS already uses ADRs for decisions and compromises that cannot be recovered
-from the implementation alone. The factory should extend that practice rather
-than replace it.
-
-Accepted ADRs remain immutable. A changed belief or decision should create a new
-record that supersedes the old one where appropriate.
-
----
-
-## 8. Two distinct evaluators
-
-The factory should eventually evaluate both intent legibility and evolvability.
-
-### 8.1 Intent evaluator
-
-The key idea is blind reconstruction.
-
-Given the code and ordinary repository context, but not the original rationale,
-ask an evaluator to reconstruct:
-
-- the domain model,
-- the intended boundaries,
-- the assumed change directions,
-- the accepted trade-offs,
-- the reasons for non-obvious complexity.
-
-Then compare the reconstruction with the recorded intent.
-
-Useful signals may include:
-
-- factual agreement with recorded intent,
-- false inferred rationale,
-- uncertainty,
-- number of files/context tokens required,
-- disagreement across multiple evaluator runs,
-- concepts that can only be understood after reading an ADR.
-
-This is not a perfect measurement of beauty, but it is closer to the property we
-care about than generic complexity metrics.
-
-A failure does not imply that everything must be encoded in code. Some rationale
-belongs in comments or ADRs. The target is low total reconstruction cost across
-the repository's knowledge artifacts.
-
-### 8.2 Change evaluator
-
-Take the current change model and simulate likely future changes against a
-candidate design.
-
-For each scenario, measure or estimate:
-
-- modules touched,
-- public interfaces changed,
-- existing tests rewritten,
-- new dependencies introduced,
-- migration work,
-- compatibility impact,
-- operational risk,
-- implementation effort.
-
-An agent can first perform planning-only simulations. Later experiments can
-apply changes in isolated worktrees or branches and measure the actual diff.
-
-The scenario result is then interpreted using the utility model.
-
----
-
-## 9. The desired decision loop
-
-The target loop is closer to:
+Can we operationalize:
 
 ```text
-current requirement
-+ current code
-+ change model
-+ utility model
-+ ADRs / assumptions
-        |
-        v
-candidate designs
-        |
-        +--> intent reconstruction evaluation
-        |
-        +--> counterfactual change simulation
-        |
-        v
-trade-off report
-        |
-        v
-implementation
-        |
-        v
-tests + architecture checks
-        |
-        v
-real change history / incidents / upstream changes
-        |
-        v
-update beliefs and utility assumptions when evidence changes
+Σ_i P_t(Δ_i) * U_t(Δ_i | D)
 ```
 
-The important shift is that the agent is not asked merely to make the current
-task pass. It is given an explicit model of what futures matter and which costs
-matter in those futures.
+well enough to compare candidate designs?
+
+Sub-questions:
+
+- How should change scenarios be represented?
+- How much probability precision is useful?
+- Which costs are deterministic, measured, estimated, or judged?
+- Which objectives must remain hard constraints?
+- How do we include present complexity and reversibility?
+
+### RQ3 — LLM counterfactual validity
+
+Does LLM-based change simulation predict the cost of later real changes?
+
+Compare:
+
+- predicted touched boundaries;
+- predicted files/modules;
+- predicted migration risk;
+- simulated diff;
+- later actual diff.
+
+### RQ4 — Forecast calibration
+
+Can repository history and external evidence improve the change model over time?
+
+The goal is not autonomous prediction for its own sake. The goal is a maintained
+and inspectable belief model.
+
+### RQ5 — Interaction between the two axes
+
+Does better intent recoverability reduce actual future change cost?
+
+This is plausible but should be tested rather than assumed.
 
 ---
 
-## 10. FTS is a useful experiment for this model
+## 13. FTS as the experimental system
 
-FTS already contains several characteristics that make it a good testbed:
+FTS is a strong testbed because its existing ADRs already contain real beliefs
+about future change.
 
-- it has accepted ADRs and explicitly records trade-offs that cannot be
-  recovered from implementation alone;
-- ordinary TypeScript is an explicit compatibility and exit boundary;
-- proposal adapters are intentionally removable and must follow upstream
-  proposal changes;
-- editor, build, and language-tooling integrations share semantic concerns but
-  have distinct host boundaries;
-- upstream proposal changes are a real and observable source of future change.
+Examples include:
 
-This means the repository already contains implicit change beliefs and utility
-choices. The first factory experiment should extract those beliefs rather than
-invent a generic architecture framework.
+- upstream proposal syntax and semantics may change;
+- proposal adapters should be removable;
+- ordinary TypeScript is the compatibility and exit boundary;
+- host integrations can evolve while proposal semantics should have one source
+  of truth;
+- generated implementation details should not become public contracts.
 
-Examples of likely hypotheses to validate from existing ADRs and history:
+These are not generic coding preferences. They are architecture decisions based
+on beliefs about future evolution and on explicit utility choices.
 
-- upstream proposal syntax and semantics are expected to change;
-- host integrations may change independently from core proposal semantics;
-- removability and compatibility with ordinary TypeScript are high-value
-  objectives;
-- generated implementation details should not become public contracts;
-- duplicated proposal semantics across editor/build paths are especially
-  expensive.
-
-These are hypotheses, not yet a formal change model. They must be verified
-against the repository's ADRs, code, commit history, and intended roadmap.
+The experiment should first reconstruct those beliefs from existing ADRs and
+history, then test whether exposing them explicitly changes an agent's design
+choice.
 
 ---
 
-## 11. What success would mean
+## 14. What not to do yet
 
-The first experiment is successful if it demonstrates that the factory can make
-a better architecture decision than a plain "implement the spec and pass the
-tests" agent because it had access to explicit future-change beliefs and
-utilities.
+Do not start by building a large software-factory framework.
 
-We do not need a mathematically perfect optimizer.
+Do not start by inventing a universal YAML schema.
 
-We need evidence that:
+Do not start by creating a generic "taste score".
 
-1. recorded design intent is recoverable by another agent with less ambiguity;
-2. candidate designs can be compared against concrete future-change scenarios;
-3. the comparison changes at least one real design decision;
-4. the assumptions behind that decision remain inspectable and updateable;
-5. later real changes can be used to calibrate the earlier forecast.
+Do not ask an LLM simply:
 
-The goal is not to automate taste by inventing more coding rules.
+> Is this architecture good?
 
-The goal is to externalize enough of the reasoning behind taste that agents can
-participate in the same decision process.
+The immediate work is:
+
+1. map the prior research;
+2. define the two target quantities;
+3. identify measurable proxies;
+4. identify what LLMs make newly feasible;
+5. design one falsifiable FTS experiment;
+6. only then introduce the minimum durable artifacts and automation required by
+   that experiment.
+
+---
+
+## 15. Working thesis
+
+The working thesis for the next phase is:
+
+> Existing architecture research already provides ways to reason about future
+> change scenarios, trade-offs, economic value, design rationale, and
+> architectural fitness. LLMs may change the economics of applying those ideas:
+> they can reconstruct intent from repository artifacts and can cheaply simulate
+> counterfactual future changes against candidate designs. A software factory
+> should exploit those capabilities to evaluate intent recoverability and
+> evolvability explicitly, rather than merely accelerating implementation of
+> current specifications.
+
+That thesis — not "automating taste" — is the basis for the next experiment.
