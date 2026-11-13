@@ -4,8 +4,8 @@ import { type Options, transform } from '@swc/core';
 import { createUnplugin, type UnpluginFactory } from 'unplugin';
 
 export const ftsIdFilter = {
-  exclude: /(?:^|[/\\])node_modules(?:[/\\])/,
-  include: /\.fts(?:\?.*)?$/,
+  exclude: /^(?:[^?]*[/\\])?node_modules[/\\]/,
+  include: /^[^?]*\.fts(?:\?.*)?$/,
 };
 
 const typeScriptTransformOptions = {

@@ -28,33 +28,31 @@ const buildFixture = async (input: string) => {
     throw new Error('Expected Vite to return one build output');
   }
 
-  return result.output.flatMap((artifact) =>
-    artifact.type === 'chunk' ? [artifact] : [],
+  const entry = result.output.find(
+    (artifact) => artifact.type === 'chunk' && artifact.isEntry,
   );
+  if (!entry || entry.type !== 'chunk') {
+    throw new Error('Expected the fixture entry module');
+  }
+  return entry;
 };
 
 describe('fts()', () => {
   describe('Vite build', () => {
-    context('with a valid .fts module', () => {
-      let chunks: Rollup.OutputChunk[];
+    context('when the entry imports a valid .fts module', () => {
+      let chunk: Rollup.OutputChunk;
 
       beforeAll(async () => {
-        chunks = await buildFixture('src/index.ts');
+        chunk = await buildFixture('src/index.ts');
       });
 
       describe('code', () => {
         it('contains neither proposal nor TypeScript syntax', () => {
-          expect(chunks).toHaveLength(1);
-          const [chunk] = chunks;
-
           expect(chunk.code).not.toContain('|>');
           expect(chunk.code).not.toContain(': number');
         });
 
         it('exports the pipeline result at runtime', async () => {
-          expect(chunks).toHaveLength(1);
-          const [chunk] = chunks;
-
           expect(
             await import(
               `data:text/javascript;base64,${Buffer.from(chunk.code).toString('base64')}`
@@ -64,29 +62,17 @@ describe('fts()', () => {
       });
 
       describe('map', () => {
-        // oxlint-disable-next-line unicorn/consistent-function-scoping -- Keep this helper within the map contract.
-        const positionOfSymbol = (text: string, symbol: string) => {
-          const offset = text.indexOf(symbol);
-
-          if (offset < 0) {
-            throw new Error(`Could not find "${symbol}" in source`);
-          }
-
-          const prefix = text.slice(0, offset);
-          return {
-            column: offset - (prefix.lastIndexOf('\n') + 1),
-            line: prefix.split('\n').length,
-          };
-        };
-
         it('traces the generated export to the original .fts symbol', () => {
-          expect(chunks).toHaveLength(1);
-          const [chunk] = chunks;
           expect(chunk.map).not.toBeNull();
-
+          const offset = chunk.code.indexOf('answer');
+          expect(offset).toBeGreaterThanOrEqual(0);
+          const prefix = chunk.code.slice(0, offset);
           const original = originalPositionFor(
             new TraceMap(JSON.stringify(chunk.map)),
-            positionOfSymbol(chunk.code, 'answer'),
+            {
+              column: offset - prefix.lastIndexOf('\n') - 1,
+              line: prefix.split('\n').length,
+            },
           );
 
           expect(original).toMatchObject({
@@ -98,36 +84,34 @@ describe('fts()', () => {
       });
     });
 
-    context('with an invalid .fts module', () => {
+    context('when the entry imports an invalid .fts module', () => {
       it('fails with the original filename', async () => {
         await expect(buildFixture('src/invalid-entry.ts')).rejects.toThrow(
-          /invalid\.fts/,
+          /\[plugin fts\].*invalid\.fts/,
         );
       });
     });
   });
 
   describe('Vitest', () => {
-    context('with the fixture Vite config', () => {
-      const vitest = spawnSync(
-        process.execPath,
-        [
-          fileURLToPath(
-            new URL('../../../node_modules/vitest/vitest.mjs', import.meta.url),
-          ),
-          'run',
-          '--config',
-          'vite.config.ts',
-        ],
-        { cwd: fixtureRoot, encoding: 'utf8' },
-      );
-
+    context('when the fixture Vite config is used', () => {
       it('executes the imported .fts module', () => {
-        expect({
-          status: vitest.status,
-          stderr: vitest.stderr,
-          stdout: vitest.stdout,
-        }).toMatchObject({ status: 0 });
+        const vitest = spawnSync(
+          process.execPath,
+          [
+            fileURLToPath(
+              new URL(
+                '../../../node_modules/vitest/vitest.mjs',
+                import.meta.url,
+              ),
+            ),
+            'run',
+            '--config',
+            'vite.config.ts',
+          ],
+          { cwd: fixtureRoot, encoding: 'utf8' },
+        );
+        expect(vitest.status).toBe(0);
       });
     });
   });

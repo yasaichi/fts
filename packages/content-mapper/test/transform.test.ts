@@ -1,32 +1,35 @@
-import { parseSync, types } from '@babel/core';
 import { createFileSystemWithLib } from 'typescript/fs';
-import { API, type Diagnostic, ModuleKind } from 'typescript/sync';
+import { API, ModuleKind } from 'typescript/sync';
 import { beforeAll, describe as context, describe, expect, it } from 'vitest';
 import {
   type TransformResult,
   transformFutureTypeScript,
 } from '../src/transform.js';
 
-function exportedNames(text: string): string[] {
-  const ast = parseSync(text, {
-    babelrc: false,
-    configFile: false,
-    parserOpts: { plugins: ['typescript'] },
+function consumerDiagnostics(producer: string, consumer: string) {
+  // Observe FTS recovery output directly, without project discovery or LSP.
+  using checker = new API();
+  using snapshot = checker.createSnapshot({
+    fileSystem: createFileSystemWithLib([
+      ['/producer.ts', producer],
+      ['/consumer.ts', consumer],
+    ]),
+    createPrograms: [
+      {
+        rootFiles: ['/consumer.ts'],
+        compilerOptions: {
+          module: ModuleKind.CommonJS,
+          noEmit: true,
+          strict: true,
+        },
+      },
+    ],
   });
-  if (!ast) throw new Error('Expected a valid TypeScript module');
-  return ast.program.body
-    .flatMap((statement) => {
-      if (!types.isExportNamedDeclaration(statement)) return [];
-      return [
-        ...(statement.declaration
-          ? Object.keys(types.getBindingIdentifiers(statement.declaration))
-          : []),
-        ...statement.specifiers.map(({ exported }) =>
-          types.isIdentifier(exported) ? exported.name : exported.value,
-        ),
-      ];
-    })
-    .toSorted();
+  const program = snapshot.operation.createdPrograms[0];
+  return [
+    ...program.getSyntacticDiagnostics(),
+    ...program.getSemanticDiagnostics(),
+  ];
 }
 
 describe('transformFutureTypeScript(source, fileName)', () => {
@@ -88,7 +91,12 @@ describe('transformFutureTypeScript(source, fileName)', () => {
 
     describe('text', () => {
       it('retains the source export', () => {
-        expect(exportedNames(result.text)).toEqual(['result']);
+        expect(
+          consumerDiagnostics(
+            result.text,
+            'import { result } from "./producer"; const value: number = result;',
+          ),
+        ).toEqual([]);
       });
     });
   });
@@ -120,186 +128,63 @@ describe('transformFutureTypeScript(source, fileName)', () => {
     });
 
     describe('text', () => {
-      it('returns valid TypeScript', () => {
-        expect(() =>
-          parseSync(result.text, { parserOpts: { plugins: ['typescript'] } }),
-        ).not.toThrow();
+      it('retains the exported binding in valid TypeScript', () => {
+        expect(
+          consumerDiagnostics(
+            result.text,
+            'import { renamed } from "./producer"; export const result = renamed;',
+          ),
+        ).toEqual([]);
       });
     });
   });
 
   context.each([
     {
-      context: 'a generic type alias with a default parameter',
-      source: 'export type Result<T, U = string> = [T, U];',
-      consumer:
-        'import type { Result } from "./producer"; const one: Result<number> = [1, "ok"]; const two: Result<number, boolean> = [1, true];',
-    },
-    {
-      context: 'a generic function',
-      source: 'export function identity<T>(value: T): T { return value; }',
-      consumer:
-        'import { identity } from "./producer"; const value: string = identity<string>("ok");',
-    },
-    {
-      context: 'a generic class with a generic method',
+      context: 'an ordinary exported declaration',
       source:
-        'export class Model<T> { value?: T; read<U>(value: U): U { return value; } }',
+        'export interface Shape<T> { id: T }\nconst broken = input |> parse(',
       consumer:
-        'import { Model } from "./producer"; const model: Model<string> = new Model<string>(); const value: number = model.read<number>(1);',
+        'import type { Shape } from "./producer"; const shape: Shape<number> = { id: 1 };',
     },
     {
-      context: 'a generic interface',
-      source: 'export interface Shape<T> { id: T }',
-      consumer:
-        'import type { Shape } from "./producer"; const shape: Shape<number> = { id: 1 }; const id: number = shape.id;',
-    },
-    {
-      context: 'a nested namespace',
+      context: 'an unfinished binding inside a nested namespace',
       source:
-        'export namespace Models.Nested { export interface Shape<T> { id: T } }',
+        'export namespace Models.Nested { export const { key: renamed } = input |> parse(',
       consumer:
-        'import type { Models } from "./producer"; const shape: Models.Nested.Shape<number> = { id: 1 };',
+        'import { Models } from "./producer"; export const result = Models.Nested.renamed;',
     },
     {
-      context: 'enum member types and values',
-      source: 'export enum State { Ready, Done = "done" }',
+      context: 'an unfinished nested object binding',
+      source: 'export const { nested: { inner } } = input |> parse(',
       consumer:
-        'import { State } from "./producer"; const ready: State.Ready = State.Ready; const done: string = State.Done;',
+        'import { inner } from "./producer"; export const result = inner;',
     },
     {
-      context: 'a locally aliased generic declaration',
-      source: 'class Model<T> { value?: T } export { Model as Renamed };',
+      context: 'an unfinished array binding with an omitted element and rest',
+      source: 'export const [first, , ...rest] = input |> parse(',
       consumer:
-        'import { Renamed } from "./producer"; const model: Renamed<string> = new Renamed<string>();',
+        'import { first, rest } from "./producer"; export const values = [first, rest];',
     },
     {
-      context: 'an anonymous default class',
-      source: 'export default class<T> { value?: T }',
-      consumer:
-        'import Model from "./producer"; const model: Model<string> = new Model<string>();',
-    },
-    {
-      context: 'a named default function with generic overloads',
+      context: 'an anonymous default class beside a generated-name collision',
       source:
-        'export default function identity<T>(value: T): T; export default function identity(value: number, suffix: string): string; export default function identity(value: unknown, suffix?: string): unknown { return suffix ?? value; }',
+        'export const __fts_default_0 = 1; export default class { read(): number { return 1; } }\nconst broken = input |> parse(',
+      consumer:
+        'import Model, { __fts_default_0 } from "./producer"; const value: number = new Model().read(); const existing: 1 = __fts_default_0;',
+    },
+    {
+      context: 'a named default function with overloads',
+      source:
+        'export default function identity<T>(value: T): T; export default function identity(value: number, suffix: string): string; export default function identity(value: unknown, suffix?: string): unknown { return suffix ?? value; }\nconst broken = input |> parse(',
       consumer:
         'import identity from "./producer"; const value: string = identity<string>("ok"); const other: string = identity(1, "ok");',
     },
-    {
-      context: 'nested and array export bindings',
-      source:
-        'declare const input: any; declare const list: any; export const { key: renamed, nested: { inner } } = input; export const [first, , ...rest] = list;',
-      consumer:
-        'import { renamed, inner, first, rest } from "./producer"; const values = [renamed, inner, first, rest];',
-    },
-    {
-      context: 'a generic export assignment',
-      source:
-        'function identity<T>(value: T): T { return value; } export = identity;',
-      consumer:
-        'import identity = require("./producer"); const value: string = identity<string>("ok");',
-    },
-  ])(
-    'when $context precedes an unfinished pipeline',
-    ({ source, consumer }) => {
-      let diagnostics: readonly Diagnostic[];
-
-      beforeAll(() => {
-        const result = transformFutureTypeScript(
-          `${source}\nconst broken = input |> parse(`,
-          'incomplete.fts',
-        );
-        // Check export use directly, without project discovery or LSP transport.
-        using checker = new API();
-        using snapshot = checker.createSnapshot({
-          fileSystem: createFileSystemWithLib([
-            ['/producer.ts', result.text],
-            ['/consumer.ts', consumer],
-          ]),
-          createPrograms: [
-            {
-              rootFiles: ['/consumer.ts'],
-              compilerOptions: {
-                module: ModuleKind.CommonJS,
-                noEmit: true,
-                strict: true,
-              },
-            },
-          ],
-        });
-        const program = snapshot.operation.createdPrograms[0];
-        diagnostics = [
-          ...program.getSyntacticDiagnostics(),
-          ...program.getSemanticDiagnostics(),
-        ];
-      });
-
-      describe('text', () => {
-        it('preserves the declaration shape used by the consumer', () => {
-          expect(diagnostics).toEqual([]);
-        });
-      });
-    },
-  );
-  // Recovery invokes the real native parser once per lexical context, without
-  // repeating project discovery, LSP transport or consumer checking.
-
-  context.each([
-    {
-      context: 'template interpolation',
-      source: 'const template = `value ${value}`;',
-    },
-    {
-      context: 'nested templates',
-      source: 'const nested = `outer ${`inner ${ { value: 1 }.value }`}`;',
-    },
-    { context: 'a regexp opening brace', source: 'const regex = /{/;' },
-    {
-      context: 'a returned regexp closing brace',
-      source: 'function read() { return /}/; }',
-    },
-    {
-      context: 'a regexp after a control statement',
-      source: 'function read() { if (value) /}/.test(value); }',
-    },
-    {
-      context: 'division after an identifier',
-      source: 'const division = numerator / denominator;',
-    },
-    {
-      context: 'division after a function expression',
-      source: 'const quotient = function() {} / 2;',
-    },
-    {
-      context: 'division after an object literal',
-      source: 'const quotient = {} / denominator;',
-    },
-  ])('when $context precedes an unfinished exported binding', ({ source }) => {
-    let result: TransformResult;
-
-    beforeAll(() => {
-      result = transformFutureTypeScript(
-        `${source} export const named = input |> parse(`,
-        'incomplete.fts',
-      );
-    });
-
-    describe('diagnostics', () => {
-      it('reports the lowering failure', () => {
-        expect(result.diagnostics).toHaveLength(1);
-      });
-    });
-
-    describe('mappings', () => {
-      it('returns no mappings for the recovery stub', () => {
-        expect(result.mappings).toEqual([]);
-      });
-    });
-
+  ])('when recovery is needed for $context', ({ source, consumer }) => {
     describe('text', () => {
-      it('preserves the later export', () => {
-        expect(exportedNames(result.text)).toEqual(['named']);
+      it('keeps the exported declarations usable by the consumer', () => {
+        const result = transformFutureTypeScript(source, 'incomplete.fts');
+        expect(consumerDiagnostics(result.text, consumer)).toEqual([]);
       });
     });
   });

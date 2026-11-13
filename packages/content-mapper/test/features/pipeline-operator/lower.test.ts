@@ -1,38 +1,10 @@
-import { readFileSync } from 'node:fs';
-import { SpanMap, SpanMapFeature } from 'typescript/ast';
+import { SpanMapFeature, SpanMapKind } from 'typescript/ast';
 import { describe as context, describe, expect, it } from 'vitest';
 import { createPipelineVirtualTypeScript } from '../../../src/features/pipeline-operator/editor-lowering.js';
 
-function spanMap(
-  mappings: ReturnType<typeof createPipelineVirtualTypeScript>['mappings'],
-) {
-  return new SpanMap(
-    mappings.map(
-      ([
-        virtualStart,
-        virtualLength,
-        originalStart,
-        originalLength,
-        kind,
-        features,
-      ]) => ({
-        virtualStart,
-        virtualEnd: virtualStart + virtualLength,
-        originalStart,
-        originalEnd: originalStart + originalLength,
-        kind,
-        features,
-      }),
-    ),
-  );
-}
-
 describe('createPipelineVirtualTypeScript(source, fileName)', () => {
   context('when source contains a Hack-style pipeline', () => {
-    const source = readFileSync(
-      new URL('../../fixtures/pipeline-operator/basic.fts', import.meta.url),
-      'utf8',
-    );
+    const source = 'const result = input |> parse(%) |> format(%);';
     const lowered = createPipelineVirtualTypeScript(source, 'basic.fts');
 
     describe('code', () => {
@@ -42,56 +14,56 @@ describe('createPipelineVirtualTypeScript(source, fileName)', () => {
     });
 
     describe('mappings', () => {
-      const map = spanMap(lowered.mappings);
       const topicOffsets = Array.from(
         source.matchAll(/%/g),
         (match) => match.index,
       );
 
-      it('keeps ordinary source symbols available to semantic features', () => {
-        expect(
-          map.originalToVirtualPositions(
-            source.indexOf('result'),
-            SpanMapFeature.Hover,
-          ),
-        ).toContainEqual(
-          expect.objectContaining({ position: lowered.code.indexOf('result') }),
-        );
-      });
-
-      it.each(topicOffsets)(
-        'excludes topic at source offset %i from hover',
-        (offset) => {
-          expect(
-            map.originalToVirtualPositions(offset, SpanMapFeature.Hover),
-          ).toEqual([]);
+      it.each(['result', 'parse'])(
+        'keeps the %s identifier available to semantic features',
+        (identifier) => {
+          expect(lowered.mappings).toContainEqual([
+            lowered.code.indexOf(identifier),
+            identifier.length,
+            source.indexOf(identifier),
+            identifier.length,
+            SpanMapKind.Verbatim,
+            SpanMapFeature.All,
+          ]);
         },
       );
 
       it.each(topicOffsets)(
-        'excludes topic end at source offset %i from completion',
+        'excludes the topic and both boundaries at source offset %i from semantic spans',
         (offset) => {
-          expect(
-            map.originalToVirtualPositions(
-              offset + 1,
-              SpanMapFeature.Completion,
-            ),
-          ).toEqual([]);
+          const visible = lowered.mappings.filter(
+            ([, , start, length, , features]) =>
+              start <= offset + 1 &&
+              start + length >= offset &&
+              ((features ?? SpanMapFeature.All) &
+                (SpanMapFeature.Hover | SpanMapFeature.Completion)) !==
+                0,
+          );
+          expect(visible).toEqual([]);
         },
       );
 
       it.each(['parse', 'format'])(
-        'projects the generated %s argument to its non-empty topic range',
+        'maps the generated %s argument to its non-empty topic range',
         (callee) => {
           const start =
             lowered.code.lastIndexOf(`${callee}(`) + callee.length + 1;
           const end = lowered.code.indexOf(')', start);
           const offset = source.indexOf(`${callee}(%)`) + callee.length + 1;
 
-          expect(map.virtualToOriginalSpan({ pos: start, end }).range).toEqual({
-            pos: offset,
-            end: offset + 1,
-          });
+          expect(lowered.mappings).toContainEqual([
+            start,
+            end - start,
+            offset,
+            1,
+            SpanMapKind.Atom,
+            0,
+          ]);
         },
       );
 
@@ -106,32 +78,30 @@ describe('createPipelineVirtualTypeScript(source, fileName)', () => {
     });
   });
 
-  context(
-    'when a same-line surrogate pair precedes a Unicode identifier',
-    () => {
-      const identifier = '日本語';
-      const source = `const label = "🌱"; const ${identifier}: number = 42`;
-      const lowered = createPipelineVirtualTypeScript(source, 'unicode.fts');
-
-      describe('mappings', () => {
-        const map = spanMap(lowered.mappings);
-
-        it.each(Array.from({ length: identifier.length }, (_, index) => index))(
-          'keeps identifier offset %i available to semantic features',
-          (offset) => {
-            expect(
-              map.originalToVirtualPositions(
-                source.indexOf(identifier) + offset,
-                SpanMapFeature.Hover,
-              ),
-            ).toContainEqual(
-              expect.objectContaining({
-                position: lowered.code.indexOf(identifier) + offset,
-              }),
-            );
-          },
-        );
-      });
+  context.each([
+    {
+      condition: 'a same-line surrogate pair precedes the identifier',
+      source: 'const label = "🌱"; const 日本語: number = 42',
     },
-  );
+    {
+      condition: 'a surrogate pair is on the preceding line',
+      source: 'const label = "🌱";\nconst 日本語: number = 42',
+    },
+  ])('when $condition', ({ source }) => {
+    const identifier = '日本語';
+    const lowered = createPipelineVirtualTypeScript(source, 'unicode.fts');
+
+    describe('mappings', () => {
+      it('retains the identifier range in UTF-16 code units', () => {
+        expect(lowered.mappings).toContainEqual([
+          lowered.code.indexOf(identifier),
+          identifier.length,
+          source.indexOf(identifier),
+          identifier.length,
+          SpanMapKind.Verbatim,
+          SpanMapFeature.All,
+        ]);
+      });
+    });
+  });
 });

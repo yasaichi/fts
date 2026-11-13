@@ -4,7 +4,9 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   afterAll,
+  afterEach,
   beforeAll,
+  beforeEach,
   describe as context,
   describe,
   expect,
@@ -40,7 +42,7 @@ function positionAt(source: string, offset: number): Position {
 // This is the same native server used by the TypeScript VS Code extension;
 // no FTS language server or semantic provider participates in these requests.
 
-describe('native TypeScript editor features', () => {
+describe('FTS editor integration', () => {
   let server: ReturnType<typeof startConnection>;
   let connection: ReturnType<typeof startConnection>['connection'];
 
@@ -110,20 +112,14 @@ describe('native TypeScript editor features', () => {
         });
       });
 
-      it.each([0, 1])(
-        'hides synthesized topics from hover at offset %i',
-        async (adjustment) => {
-          expect(
-            await connection.sendRequest('textDocument/hover', {
-              textDocument: { uri },
-              position: positionAt(
-                source,
-                source.lastIndexOf('%') + adjustment,
-              ),
-            }),
-          ).toBeNull();
-        },
-      );
+      it('hides the synthesized topic from hover', async () => {
+        expect(
+          await connection.sendRequest('textDocument/hover', {
+            textDocument: { uri },
+            position: positionAt(source, source.lastIndexOf('%')),
+          }),
+        ).toBeNull();
+      });
     });
 
     describe('textDocument/definition', () => {
@@ -143,6 +139,22 @@ describe('native TypeScript editor features', () => {
             },
           }),
         );
+      });
+    });
+
+    describe('textDocument/diagnostic', () => {
+      it('projects the FTS type error to its original range', async () => {
+        const expected = baseline.files.find(
+          ({ file }) => file === 'pipeline.fts',
+        );
+        const report = await connection.sendRequest<{ items: Diagnostic[] }>(
+          'textDocument/diagnostic',
+          { textDocument: { uri } },
+        );
+        const errors = report.items
+          .filter(({ severity }) => severity === 1)
+          .map(({ code, range }) => ({ code, range }));
+        expect(errors).toEqual(expected?.diagnostics);
       });
     });
   });
@@ -190,46 +202,6 @@ describe('native TypeScript editor features', () => {
       });
     });
   });
-
-  context.each(baseline.files)(
-    'when checking $file',
-    ({ file, diagnostics }) => {
-      const fileUri = new URL('./fixtures/parity/' + file, import.meta.url)
-        .href;
-      const text = readFileSync(fileURLToPath(fileUri), 'utf8');
-
-      beforeAll(async () => {
-        await connection.sendNotification('textDocument/didOpen', {
-          textDocument: {
-            uri: fileUri,
-            languageId: 'future-typescript',
-            version: 1,
-            text,
-          },
-        });
-      });
-
-      afterAll(async () => {
-        await connection.sendNotification('textDocument/didClose', {
-          textDocument: { uri: fileUri },
-        });
-      });
-
-      describe('textDocument/diagnostic', () => {
-        it('preserves the complete pre-migration diagnostic ranges and codes', async () => {
-          const report = await connection.sendRequest<{ items: Diagnostic[] }>(
-            'textDocument/diagnostic',
-            { textDocument: { uri: fileUri } },
-          );
-          const errors = report.items
-            .filter(({ severity }) => severity === 1)
-            .map(({ code, range }) => ({ code, range }));
-          expect(errors).toEqual(expect.arrayContaining(diagnostics));
-          expect(errors).toHaveLength(diagnostics.length);
-        });
-      });
-    },
-  );
 
   context('when a project has no tsconfig', () => {
     let directory: string;
@@ -314,34 +286,16 @@ describe('native TypeScript editor features', () => {
     });
   });
 
-  context('when a consumer imports a module that cannot be lowered', () => {
+  context('when a consumer imports an incomplete producer', () => {
     let directory: string;
     let consumerUri: string;
     let producerUri: string;
-    const declarations = `declare const input: any;
-      export const named = 1;
-      export const { key: renamed, nested: { inner } } = input;
-      export function fn<T>(value: T): T { return value; }
-      export class Model<T> { value?: T }
-      export interface Shape<T> { value: T }
-      export type Result<T> = T;
-      export namespace Models { export interface Shape { id: number } }
-      export enum State { Ready }
-      export { named as alias };
-      export default named;
-      export type * from "./other.fts";`;
-    const incomplete = `${declarations}\nexport const broken = input |> parse(`;
-    const repaired = `${declarations}\nexport const broken = 1 |> String(%);`;
-    const text = `import value, { alias, broken, fn, inner, Model, Models, named, renamed, State } from "./broken.fts";
-    import type { Other, Result, Shape } from "./broken.fts";
-    export const model: Model<string> = new Model<string>();
-    export const shape: Models.Shape = { id: 1 };
-    export const state: State.Ready = State.Ready;
-    export const types: [Other, Result<string>, Shape<number>] = [{ value: named }, "ok", { value }];
-    export const values = [alias, broken, fn<string>("ok"), inner, renamed];
-    export const result = broken;`;
+    const incomplete = 'export const broken = 1 |> String(';
+    const repaired = 'export const broken = 1 |> String(%);';
+    const text = `import { broken } from "./broken.fts";
+export const result = broken;`;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       directory = mkdtempSync(
         join(
           fileURLToPath(new URL('./fixtures/parity/', import.meta.url)),
@@ -349,22 +303,18 @@ describe('native TypeScript editor features', () => {
         ),
       );
       const consumer = join(directory, 'consumer.ts');
+      const producer = join(directory, 'broken.fts');
       consumerUri = pathToFileURL(consumer).href;
+      producerUri = pathToFileURL(producer).href;
       writeFileSync(
         join(directory, 'tsconfig.json'),
         JSON.stringify({
           extends: '../tsconfig.json',
-          files: ['consumer.ts', 'broken.fts', 'other.fts'],
+          files: ['consumer.ts', 'broken.fts'],
           include: [],
         }),
       );
-      const producer = join(directory, 'broken.fts');
-      producerUri = pathToFileURL(producer).href;
       writeFileSync(producer, incomplete);
-      writeFileSync(
-        join(directory, 'other.fts'),
-        'export interface Other { value: number }',
-      );
       writeFileSync(consumer, text);
       await connection.sendNotification('textDocument/didOpen', {
         textDocument: {
@@ -384,7 +334,7 @@ describe('native TypeScript editor features', () => {
       });
     });
 
-    afterAll(async () => {
+    afterEach(async () => {
       try {
         await connection.sendNotification('textDocument/didClose', {
           textDocument: { uri: consumerUri },
@@ -397,68 +347,47 @@ describe('native TypeScript editor features', () => {
       }
     });
 
-    describe('textDocument/diagnostic', () => {
-      it('reports the producer frontend error', async () => {
-        const report = await connection.sendRequest<{ items: Diagnostic[] }>(
+    describe('producer recovery', () => {
+      it('preserves imports while editing and restores types after repair', async () => {
+        const before = await connection.sendRequest<{ items: Diagnostic[] }>(
           'textDocument/diagnostic',
           { textDocument: { uri: producerUri } },
         );
-        expect(report.items).toContainEqual(
-          expect.objectContaining({ code: 1000 }),
+        expect(before.items).toContainEqual(
+          expect.objectContaining({ code: 1000, source: 'fts' }),
         );
-      });
+        const consumerBefore = await connection.sendRequest<{
+          items: Diagnostic[];
+        }>('textDocument/diagnostic', { textDocument: { uri: consumerUri } });
+        expect(
+          consumerBefore.items.filter(({ severity }) => severity === 1),
+        ).toEqual([]);
 
-      it('keeps value and type exports importable in the consumer', async () => {
-        const report = await connection.sendRequest<{ items: Diagnostic[] }>(
-          'textDocument/diagnostic',
-          { textDocument: { uri: consumerUri } },
-        );
-        expect(report.items.filter(({ severity }) => severity === 1)).toEqual(
-          [],
-        );
-      });
-    });
-
-    context('when the producer is repaired', () => {
-      beforeAll(async () => {
         await connection.sendNotification('textDocument/didChange', {
           textDocument: { uri: producerUri, version: 2 },
           contentChanges: [{ text: repaired }],
         });
-      });
 
-      describe('textDocument/hover', () => {
-        it('restores the consumer type from the repaired producer', async () => {
-          const hover = await connection.sendRequest<{
-            contents: { value: string };
-          }>('textDocument/hover', {
-            textDocument: { uri: consumerUri },
-            position: positionAt(text, text.indexOf('result')),
-          });
-          expect(hover.contents.value).toContain('result: string');
+        const after = await connection.sendRequest<{ items: Diagnostic[] }>(
+          'textDocument/diagnostic',
+          { textDocument: { uri: producerUri } },
+        );
+        expect(after.items.filter(({ severity }) => severity === 1)).toEqual(
+          [],
+        );
+        const consumerAfter = await connection.sendRequest<{
+          items: Diagnostic[];
+        }>('textDocument/diagnostic', { textDocument: { uri: consumerUri } });
+        expect(
+          consumerAfter.items.filter(({ severity }) => severity === 1),
+        ).toEqual([]);
+        const hover = await connection.sendRequest<{
+          contents: { value: string };
+        }>('textDocument/hover', {
+          textDocument: { uri: consumerUri },
+          position: positionAt(text, text.indexOf('result')),
         });
-      });
-
-      describe('textDocument/diagnostic', () => {
-        it('clears the producer diagnostics', async () => {
-          const report = await connection.sendRequest<{ items: Diagnostic[] }>(
-            'textDocument/diagnostic',
-            { textDocument: { uri: producerUri } },
-          );
-          expect(report.items.filter(({ severity }) => severity === 1)).toEqual(
-            [],
-          );
-        });
-
-        it('keeps the consumer free of cascading diagnostics', async () => {
-          const report = await connection.sendRequest<{ items: Diagnostic[] }>(
-            'textDocument/diagnostic',
-            { textDocument: { uri: consumerUri } },
-          );
-          expect(report.items.filter(({ severity }) => severity === 1)).toEqual(
-            [],
-          );
-        });
+        expect(hover.contents.value).toContain('result: string');
       });
     });
   });

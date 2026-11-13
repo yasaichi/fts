@@ -3,29 +3,79 @@ import { ftsIdFilter } from '../src/unplugin.js';
 
 describe('ftsIdFilter', () => {
   describe('include', () => {
-    context('with an .fts module carrying a query', () => {
-      it('includes the module', () => {
-        expect(ftsIdFilter.include.test('/project/src/index.fts?raw')).toBe(
-          true,
-        );
-      });
-    });
-
-    context('with an ordinary .ts module', () => {
-      it('does not include the module', () => {
-        expect(ftsIdFilter.include.test('/project/src/index.ts')).toBe(false);
+    context.each([
+      {
+        condition: 'the path ends in .fts',
+        id: '/project/src/index.fts',
+        included: true,
+      },
+      {
+        condition: 'an .fts path carries a query',
+        id: '/project/src/index.fts?raw',
+        included: true,
+      },
+      {
+        condition: 'the path ends in .ts',
+        id: '/project/src/index.ts',
+        included: false,
+      },
+      {
+        condition: 'the path ends in .ftsx',
+        id: '/project/src/index.ftsx',
+        included: false,
+      },
+      {
+        condition: 'only the query ends in .fts',
+        id: '/project/src/index.ts?source=index.fts',
+        included: false,
+      },
+    ])('when $condition', ({ id, included }) => {
+      it(`includes the module: ${included}`, () => {
+        expect(ftsIdFilter.include.test(id)).toBe(included);
       });
     });
   });
 
   describe('exclude', () => {
-    context('with an .fts module in node_modules', () => {
-      it('excludes the module', () => {
-        expect(
-          ftsIdFilter.exclude.test(
-            '/project/node_modules/dependency/index.fts',
-          ),
-        ).toBe(true);
+    context.each([
+      {
+        condition: 'the path is in node_modules',
+        id: '/project/node_modules/dependency/index.fts',
+        excluded: true,
+      },
+      {
+        condition: 'node_modules is the first path segment',
+        id: 'node_modules/dependency/index.fts',
+        excluded: true,
+      },
+      {
+        condition: 'the path uses Windows separators',
+        id: 'C:\\project\\node_modules\\dependency\\index.fts',
+        excluded: true,
+      },
+      {
+        condition: 'the module is in project source',
+        id: '/project/src/index.fts',
+        excluded: false,
+      },
+      {
+        condition: 'only the query contains node_modules',
+        id: '/project/src/index.fts?source=/node_modules/dependency',
+        excluded: false,
+      },
+      {
+        condition: 'the directory has a similar prefix',
+        id: '/project/my_node_modules/index.fts',
+        excluded: false,
+      },
+      {
+        condition: 'the directory has a similar suffix',
+        id: '/project/node_modules_copy/index.fts',
+        excluded: false,
+      },
+    ])('when $condition', ({ id, excluded }) => {
+      it(`excludes the module: ${excluded}`, () => {
+        expect(ftsIdFilter.exclude.test(id)).toBe(excluded);
       });
     });
   });
