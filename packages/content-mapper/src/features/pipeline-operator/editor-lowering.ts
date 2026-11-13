@@ -6,13 +6,12 @@ export function createPipelineVirtualTypeScript(
   source: string,
   fileName: string,
 ): LoweredTypeScript {
-  const { code, map, topicReferenceRanges } = lowerPipelineForVirtualCode(
-    source,
-    fileName,
-  );
+  const { code, diagnostics, map, topicReferenceRanges } =
+    lowerPipelineForVirtualCode(source, fileName);
 
   return {
     code,
+    diagnostics,
     mappings: createPipelineMappings({
       generated: code,
       source,

@@ -15,13 +15,13 @@
   },
   "scripts": {
     "build": "npm run build:types && npm run build:runtime",
-    "build:runtime": "esbuild src/vite.ts --bundle --packages=external --external:@ftslang/core --platform=node --target=node24 --format=esm --outfile=dist/vite.mjs --sourcemap",
+    "build:runtime": "esbuild src/vite.ts --bundle --packages=external --external:@ftslang/content-mapper --platform=node --target=node24 --format=esm --outfile=dist/vite.mjs --sourcemap",
     "build:types": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
-    "test": "npm run build -w @ftslang/core && npm run build -w @ftslang/build && vitest run test/unplugin.test.ts test/vite.test.ts"
+    "test": "npm run build -w @ftslang/content-mapper && npm run build -w @ftslang/build && vitest run test/unplugin.test.ts test/vite.test.ts"
   },
   "dependencies": {
-    "@ftslang/core": "0.0.1",
+    "@ftslang/content-mapper": "0.0.1",
     "@jridgewell/remapping": "2.3.5",
     "@swc/core": "1.15.47",
     "unplugin": "3.3.0"

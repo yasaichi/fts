@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { parseSync } from '@babel/core';
 import { originalPositionFor, TraceMap } from '@jridgewell/trace-mapping';
-import { ScriptTarget, transpileModule } from 'typescript';
 import { describe as context, describe, expect, it } from 'vitest';
 import { lowerFutureTypeScript } from '../src/index.js';
 
@@ -18,12 +18,9 @@ describe('lowerFutureTypeScript(source, fileName)', () => {
       });
 
       it('has no TypeScript syntax errors', () => {
-        expect(
-          transpileModule(lowered.code, {
-            compilerOptions: { target: ScriptTarget.ESNext },
-            reportDiagnostics: true,
-          }).diagnostics,
-        ).toEqual([]);
+        expect(() =>
+          parseSync(lowered.code, { parserOpts: { plugins: ['typescript'] } }),
+        ).not.toThrow();
       });
     });
 

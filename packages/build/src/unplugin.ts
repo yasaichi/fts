@@ -1,4 +1,4 @@
-import { lowerFutureTypeScript } from '@ftslang/core';
+import { lowerFutureTypeScript } from '@ftslang/content-mapper';
 import remapping from '@jridgewell/remapping';
 import { type Options, transform } from '@swc/core';
 import { createUnplugin, type UnpluginFactory } from 'unplugin';

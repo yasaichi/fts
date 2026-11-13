@@ -8,9 +8,8 @@
     "npm": ">=11.10"
   },
   "workspaces": [
-    "packages/language-core",
+    "packages/content-mapper",
     "packages/build",
-    "packages/language-server",
     "packages/prettier-plugin",
     "packages/vscode"
   ],
@@ -35,7 +34,7 @@
     "esbuild": "0.28.2",
     "oxlint": "1.78.0",
     "prettier": "3.9.0",
-    "typescript": "6.0.3",
+    "typescript": "7.1.0-beta",
     "vitest": "4.1.10"
   }
 }

@@ -1,13 +1,7 @@
 import { decodedMappings, TraceMap } from '@jridgewell/trace-mapping';
-import type { CodeMapping } from '@volar/language-core';
-import { createScanner, LanguageVariant, ScriptTarget } from 'typescript';
-import { codeInformation } from '../lowering.js';
-
-const noCodeInformation = {} as const;
-
-const syntheticVerificationInformation = {
-  verification: true,
-} as const;
+import { SpanMapFeature } from 'typescript/ast';
+import { createScanner } from 'typescript/ast/scanner';
+import type { SpanMapping } from '../lowering.js';
 
 export interface CodeMappingsInput {
   generated: string;
@@ -23,24 +17,43 @@ export interface SourceRange {
 export function createCodeMappings(
   input: CodeMappingsInput,
   unmappedSourceRanges: readonly SourceRange[],
-): CodeMapping[] {
+): SpanMapping[] {
   const generatedTokenLengthAt = createTokenLengthAt(input.generated);
   const points = createMappingPoints(input);
   const sourceTokenLengthAt = createTokenLengthAt(input.source);
 
-  return [
-    ...createSourceMappings(
-      points,
-      generatedTokenLengthAt,
-      sourceTokenLengthAt,
-      unmappedSourceRanges,
+  const sourceMappings = createSourceMappings(
+    points,
+    generatedTokenLengthAt,
+    sourceTokenLengthAt,
+    unmappedSourceRanges,
+    input,
+  );
+  const topicMappings = createSyntheticVerificationMappings(
+    points,
+    generatedTokenLengthAt,
+    unmappedSourceRanges,
+  );
+
+  // Native span maps cannot overlap. Topic projections own their generated
+  // ranges so synthesized temporaries never become editable source symbols.
+  const mappings = [
+    ...sourceMappings.filter(
+      ([start, length]) =>
+        !topicMappings.some(
+          ([topicStart, topicLength]) =>
+            start < topicStart + topicLength && start + length > topicStart,
+        ),
     ),
-    ...createSyntheticVerificationMappings(
-      points,
-      generatedTokenLengthAt,
-      unmappedSourceRanges,
-    ),
-  ];
+    ...topicMappings,
+  ].toSorted((left, right) => left[0] - right[0]);
+  const nonOverlapping: SpanMapping[] = [];
+  for (const mapping of mappings) {
+    const previous = nonOverlapping.at(-1);
+    if (!previous || mapping[0] >= previous[0] + previous[1])
+      nonOverlapping.push(mapping);
+  }
+  return nonOverlapping;
 }
 
 function createLineOffsets(text: string): number[] {
@@ -110,8 +123,9 @@ function createSourceMappings(
   generatedTokenLengthAt: TokenLengthAt,
   sourceTokenLengthAt: TokenLengthAt,
   unmappedSourceRanges: readonly SourceRange[],
-): CodeMapping[] {
-  return points.map((point) => {
+  input: CodeMappingsInput,
+): SpanMapping[] {
+  return points.map((point): SpanMapping => {
     const generatedLength = tokenLengthWithin(
       generatedTokenLengthAt,
       point.generatedOffset,
@@ -123,19 +137,26 @@ function createSourceMappings(
       point.sourceLimit,
     );
 
-    return {
-      data: touchesSourceRange(
-        point.sourceOffset,
-        sourceLength,
-        unmappedSourceRanges,
-      )
-        ? noCodeInformation
-        : codeInformation,
-      generatedLengths: [generatedLength],
-      generatedOffsets: [point.generatedOffset],
-      lengths: [sourceLength],
-      sourceOffsets: [point.sourceOffset],
-    };
+    const verbatim =
+      generatedLength === sourceLength &&
+      input.generated.slice(
+        point.generatedOffset,
+        point.generatedOffset + generatedLength,
+      ) ===
+        input.source.slice(
+          point.sourceOffset,
+          point.sourceOffset + sourceLength,
+        );
+    return [
+      point.generatedOffset,
+      generatedLength,
+      point.sourceOffset,
+      sourceLength,
+      verbatim ? 0 : 1,
+      touchesSourceRange(point.sourceOffset, sourceLength, unmappedSourceRanges)
+        ? 0
+        : SpanMapFeature.All,
+    ];
   });
 }
 
@@ -143,7 +164,7 @@ function createSyntheticVerificationMappings(
   points: readonly MappingPoint[],
   generatedTokenLengthAt: TokenLengthAt,
   sourceRanges: readonly SourceRange[],
-): CodeMapping[] {
+): SpanMapping[] {
   return sourceRanges.flatMap((sourceRange) => {
     const generatedRange = findGeneratedRange(
       points,
@@ -155,13 +176,14 @@ function createSyntheticVerificationMappings(
     }
 
     return [
-      {
-        data: syntheticVerificationInformation,
-        generatedLengths: [rangeLength(generatedRange)],
-        generatedOffsets: [generatedRange.start],
-        lengths: [rangeLength(sourceRange)],
-        sourceOffsets: [sourceRange.start],
-      },
+      [
+        generatedRange.start,
+        rangeLength(generatedRange),
+        sourceRange.start,
+        rangeLength(sourceRange),
+        1,
+        0,
+      ] satisfies SpanMapping,
     ];
   });
 }
@@ -214,17 +236,12 @@ function rangeLength(range: SourceRange): number {
 }
 
 function createTokenLengthAt(text: string) {
-  const scanner = createScanner(
-    ScriptTarget.Latest,
-    false,
-    LanguageVariant.Standard,
-    text,
-  );
+  const scanner = createScanner(false, undefined, text);
 
   return (offset: number): number => {
-    scanner.setTextPos(offset);
+    scanner.resetTokenState(offset);
     scanner.scan();
-    return scanner.getTextPos() - offset;
+    return scanner.getTokenEnd() - offset;
   };
 }
 
@@ -243,7 +260,7 @@ function touchesSourceRange(
   sourceLength: number,
   ranges: readonly SourceRange[],
 ): boolean {
-  // Volar treats both mapping endpoints as valid locations.
+  // Point-based semantic requests include both endpoints of a span.
   return ranges.some(
     (range) =>
       sourceOffset <= range.end && sourceOffset + sourceLength >= range.start,

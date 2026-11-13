@@ -5,11 +5,13 @@ import {
   encodedMap,
   TraceMap,
 } from '@jridgewell/trace-mapping';
+import type { MapperDiagnostic } from '../../lowering.js';
 import { pipelineOperatorConfig } from './config.js';
 import type { SourceRange } from './mappings.js';
 
 interface PipelineLowering {
   code: string;
+  diagnostics: MapperDiagnostic[];
   map: EncodedSourceMap;
   topicReferenceRanges: readonly SourceRange[];
 }
@@ -48,6 +50,9 @@ function createPipelineLowering(
 
   return {
     code: transformed.code,
+    diagnostics: (
+      (ast as types.File & { errors?: SyntaxError[] }).errors ?? []
+    ).map((error) => syntaxDiagnostic(error, source)),
     map,
     topicReferenceRanges,
   };
@@ -132,12 +137,33 @@ function transformPipeline(ast: types.File, source: string, fileName: string) {
     sourceMaps: true,
   });
 
-  if (!result?.code || !result.map) {
+  if (result?.code === undefined || result.code === null || !result.map) {
     throw new Error(`Babel did not produce virtual TypeScript for ${fileName}`);
   }
 
   return {
     code: result.code,
     sourceMap: result.map,
+  };
+}
+
+export function syntaxDiagnostic(
+  error: unknown,
+  source: string,
+): MapperDiagnostic {
+  const failure = error as {
+    message?: string;
+    pos?: number;
+    loc?: { index?: number };
+  };
+  const start = Math.max(
+    0,
+    Math.min(source.length, failure.pos ?? failure.loc?.index ?? 0),
+  );
+  return {
+    code: 1000,
+    length: start < source.length ? 1 : 0,
+    messageText: failure.message ?? String(error),
+    start,
   };
 }
