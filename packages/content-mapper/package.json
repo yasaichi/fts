@@ -19,7 +19,8 @@
     "build": "npm run build:types && esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --sourcemap && esbuild src/mapper.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/mapper.cjs --sourcemap",
     "build:types": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
-    "test": "vitest run test/lowering.test.ts test/features test/transform.test.ts"
+    "test": "vitest run test/lowering.test.ts test/features test/transform.test.ts",
+    "test:integration": "npm run build && vitest run test/mapper.test.ts test/tsc.test.ts test/editor.test.ts"
   },
   "dependencies": {
     "@babel/core": "8.0.1",

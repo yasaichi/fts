@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2024",
+    "types": []
+  },
+  "files": [
+    "incomplete-pipeline.fts",
+    "ordinary.fts",
+    "pipeline.fts",
+    "valid.fts"
+  ],
+  "contentMappers": [
+    {
+      "package": "@ftslang/content-mapper",
+      "extensions": [".fts"]
+    }
+  ]
+}

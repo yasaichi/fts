@@ -1,0 +1,140 @@
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { beforeAll, describe as context, describe, expect, it } from 'vitest';
+import { tsc } from './connection.js';
+import baseline from './fixtures/parity/volar-baseline.json' with {
+  type: 'json',
+};
+
+const fixtures = fileURLToPath(new URL('./fixtures/parity/', import.meta.url));
+
+function check(files: string[], externalCode: boolean) {
+  const directory = mkdtempSync(join(fixtures, '.tsc-'));
+  try {
+    writeFileSync(
+      join(directory, 'tsconfig.json'),
+      JSON.stringify({
+        extends: '../tsconfig.json',
+        files: files.map((file) => '../' + file),
+        include: [],
+      }),
+    );
+    return spawnSync(
+      process.execPath,
+      [
+        tsc,
+        '-p',
+        join(directory, 'tsconfig.json'),
+        '--pretty',
+        'false',
+        ...(externalCode ? ['--runExternalCode'] : []),
+      ],
+      { encoding: 'utf8', timeout: 20000 },
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+describe('tsc --runExternalCode', () => {
+  context.each(baseline.files)(
+    'when checking $file',
+    ({ file, diagnostics, exitStatus }) => {
+      let result: ReturnType<typeof check>;
+
+      beforeAll(() => {
+        result = check([file], true);
+      });
+
+      describe('exit status', () => {
+        it('uses native TypeScript success and failure statuses', () => {
+          expect(result.error).toBeUndefined();
+          expect(result.stderr).toBe('');
+          expect(result.status).toBe(exitStatus === 0 ? 0 : 2);
+        });
+      });
+
+      describe('diagnostics', () => {
+        it('matches the pre-migration filenames, positions and codes', () => {
+          const actual = Array.from(
+            result.stdout.matchAll(
+              /([^\s]+\.fts)\((\d+),(\d+)\): error TS(\d+):/g,
+            ),
+            ([, name, line, character, code]) => ({
+              file: name.split('/').at(-1),
+              code: Number(code),
+              line: Number(line) - 1,
+              character: Number(character) - 1,
+            }),
+          );
+          expect(actual).toEqual(
+            expect.arrayContaining(
+              diagnostics.map(({ code, range }) => ({
+                file,
+                code,
+                ...range.start,
+              })),
+            ),
+          );
+          expect(actual).toHaveLength(diagnostics.length);
+        });
+      });
+    },
+  );
+
+  context('when external code execution is not permitted', () => {
+    let result: ReturnType<typeof check>;
+
+    beforeAll(() => {
+      result = check(['valid.fts'], false);
+    });
+
+    describe('exit status', () => {
+      it('fails the check', () => {
+        expect(result.status).not.toBe(0);
+      });
+    });
+
+    describe('diagnostics', () => {
+      it('requires explicit execution permission', () => {
+        expect(result.stdout).toContain('runExternalCode');
+      });
+    });
+  });
+
+  context('when source contains an unrecoverable syntax error', () => {
+    let result: ReturnType<typeof check>;
+
+    beforeAll(() => {
+      result = check(['../pipeline-operator/incomplete.fts'], true);
+    });
+
+    describe('exit status', () => {
+      it('fails the check', () => {
+        expect(result.status).toBe(2);
+      });
+    });
+
+    describe('diagnostics', () => {
+      it('reports the frontend syntax error', () => {
+        expect(result.stdout).toContain('fts1000');
+      });
+    });
+  });
+});
+
+describe('package-lock.json', () => {
+  describe('dependencies', () => {
+    it('contains no legacy language tooling dependencies', () => {
+      const lockfile = readFileSync(
+        new URL('../../../package-lock.json', import.meta.url),
+        'utf8',
+      );
+      expect(lockfile).not.toMatch(
+        /@volar\/|volar-service-|vscode-languageclient/,
+      );
+    });
+  });
+});

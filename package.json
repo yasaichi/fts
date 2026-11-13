@@ -25,7 +25,8 @@
     "lint:fix": "oxlint --fix .",
     "test": "npm run test --workspaces --if-present",
     "verify": "concurrently --kill-others-on-fail --names commit,test \"npm run verify:commit\" \"npm test\" && npm run build",
-    "verify:commit": "concurrently --kill-others-on-fail --names format,lint,types \"npm run format:check\" \"npm run lint\" \"npm run check\""
+    "verify:commit": "concurrently --kill-others-on-fail --names format,lint,types \"npm run format:check\" \"npm run lint\" \"npm run check\"",
+    "test:mapper": "npm run test:integration -w @ftslang/content-mapper"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
