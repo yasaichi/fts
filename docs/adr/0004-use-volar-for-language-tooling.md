@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 ## Status
 
-Accepted
+Superseded by [ADR 0011](0011-use-a-content-mapper-first-architecture.md)
 
 ## Context
 

@@ -3,5 +3,11 @@
     "noEmit": true,
     "strict": true,
     "target": "ES2024"
-  }
+  },
+  "contentMappers": [
+    {
+      "package": "@ftslang/content-mapper",
+      "extensions": [".fts"]
+    }
+  ]
 }
