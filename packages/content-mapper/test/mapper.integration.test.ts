@@ -16,7 +16,7 @@ describe('content mapper stdio protocol', () => {
 
   beforeAll(async () => {
     server = startConnection(process.execPath, [
-      fileURLToPath(new URL('../dist/mapper.cjs', import.meta.url)),
+      fileURLToPath(import.meta.resolve('@ftslang/content-mapper/mapper')),
     ]);
     connection = server.connection;
     await connection.sendRequest('initialize', {

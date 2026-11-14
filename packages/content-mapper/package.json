@@ -10,6 +10,7 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.cjs"
     },
+    "./mapper": "./dist/mapper.cjs",
     "./package.json": "./package.json"
   },
   "engines": {

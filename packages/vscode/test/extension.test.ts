@@ -88,7 +88,9 @@ describe('activate(context)', () => {
                   },
                   exec: [
                     process.execPath,
-                    expect.stringContaining('/content-mapper/dist/mapper.cjs'),
+                    fileURLToPath(
+                      import.meta.resolve('@ftslang/content-mapper/mapper'),
+                    ),
                   ],
                 },
               },

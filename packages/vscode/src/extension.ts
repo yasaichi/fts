@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import type { ExtensionAPI } from 'typescript/vscode';
 import {
   type Disposable,
@@ -45,7 +45,6 @@ export async function activate(context: ExtensionContext): Promise<void> {
         contentMapper: {
           compilerOptions: string[];
           dynamicConfig: boolean;
-          exec: [string, string];
         };
       };
     };
@@ -62,7 +61,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
             cwd: Uri.file(dirname(manifestPath)),
             exec: [
               process.execPath,
-              resolve(dirname(manifestPath), mapper.exec[1]),
+              require.resolve('@ftslang/content-mapper/mapper'),
             ],
           },
         },
