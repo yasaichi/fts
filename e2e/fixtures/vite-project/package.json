@@ -1,0 +1,23 @@
+{
+  "name": "fts-consumer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "tsc --noEmit --pretty false --runExternalCode",
+    "format": "prettier --plugin @ftslang/prettier-plugin src/pipeline.fts",
+    "inspect": "node scripts/inspect.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@ftslang/build": "0.0.1",
+    "@ftslang/content-mapper": "0.0.1",
+    "@ftslang/prettier-plugin": "0.0.1",
+    "@types/node": "26.2.0",
+    "prettier": "3.9.10",
+    "typescript": "7.1.0-beta",
+    "vite": "8.3.8",
+    "vitest": "4.1.12"
+  }
+}
