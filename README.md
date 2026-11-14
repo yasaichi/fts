@@ -104,13 +104,19 @@ and npm 11.10 or later.
 ```sh
 npm install
 npm run verify
-npm run test:mapper
 ```
 
-`npm run test:mapper` requires the installed
-TypeScript binary and tests the real CLI and TypeScript language server; a missing
-or incompatible binary fails the suite. These tests do not launch the VS Code
-extension host or verify its connection to the official TypeScript extension.
+`npm run verify` runs formatting, lint and type checks alongside the test,
+build and native TypeScript integration sequence. Run `npm run test:integration`
+to execute the CLI/language-server integration suite on its own. A missing or
+incompatible TypeScript binary fails the suite. These tests do not launch the
+VS Code extension host or verify its connection to the official TypeScript
+extension.
+
+In `packages/content-mapper`, Vitest discovers `*.integration.test.ts` files as the
+`integration` project and other standard test files as the `unit` project. New test
+files matching those conventions need no script changes. Fixture-only tests in
+`packages/build/test/fixtures` run through their fixture's own configuration.
 
 Editor E2E verification is defined in the repository's
 [`verify-vscode-editor` agent skill](.agents/skills/verify-vscode-editor/SKILL.md).

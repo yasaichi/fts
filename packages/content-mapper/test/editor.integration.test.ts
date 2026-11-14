@@ -1,4 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -296,11 +302,11 @@ describe('FTS editor integration', () => {
 export const result = broken;`;
 
     beforeEach(async () => {
-      directory = mkdtempSync(
-        join(
-          fileURLToPath(new URL('./fixtures/parity/', import.meta.url)),
-          '.recovery-',
-        ),
+      directory = mkdtempSync(join(tmpdir(), 'fts-recovery-'));
+      symlinkSync(
+        fileURLToPath(new URL('../../../node_modules/', import.meta.url)),
+        join(directory, 'node_modules'),
+        'junction',
       );
       const consumer = join(directory, 'consumer.ts');
       const producer = join(directory, 'broken.fts');
@@ -309,7 +315,9 @@ export const result = broken;`;
       writeFileSync(
         join(directory, 'tsconfig.json'),
         JSON.stringify({
-          extends: '../tsconfig.json',
+          extends: fileURLToPath(
+            new URL('./fixtures/parity/tsconfig.json', import.meta.url),
+          ),
           files: ['consumer.ts', 'broken.fts'],
           include: [],
         }),
