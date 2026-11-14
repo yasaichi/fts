@@ -102,21 +102,7 @@ npm install
 npm run verify
 ```
 
-[Packed consumer acceptance](e2e/npm.test.ts) is included in `npm run verify`.
-To run it separately:
-
-```sh
-npm run build
-npm run test:consumer
-```
-
-It packs the three npm packages and installs them into temporary projects outside
-the repository, using the npm registry for their dependencies. It checks the CLI,
-Vite, Vitest, formatting, source maps, and the build package's mapper dependency.
-Failed runs retain their projects, tarballs, lockfiles and command logs at the
-temporary path printed by the test runner. These checks do not package a VSIX or
-publish artifacts.
-
 - [Development commands](package.json)
+- [End-to-end tests](e2e/)
 - [VS Code editor verification](.agents/skills/verify-vscode-editor/SKILL.md)
 - [Architecture decisions](docs/adr/)
