@@ -9,6 +9,7 @@ import {
 } from 'vscode';
 
 export async function activate(context: ExtensionContext): Promise<void> {
+  let availabilityVersion = 0;
   let registration: Disposable | undefined;
   let disposed = false;
   const register = async (): Promise<void> => {
@@ -16,13 +17,21 @@ export async function activate(context: ExtensionContext): Promise<void> {
       'TypeScriptTeam.native-preview',
     );
     if (!extension) {
+      availabilityVersion++;
       registration?.dispose();
       registration = undefined;
       return;
     }
     if (registration) return;
+    const version = availabilityVersion;
     const api = await extension.activate();
-    if (!api?.registerContentMappers || registration || disposed) return;
+    if (
+      !api?.registerContentMappers ||
+      registration ||
+      disposed ||
+      version !== availabilityVersion
+    )
+      return;
     const require = createRequire(
       context.extensionUri.fsPath + '/package.json',
     );
