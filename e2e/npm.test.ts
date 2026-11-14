@@ -38,7 +38,7 @@ function expectSuccess(result: ReturnType<typeof run>) {
 }
 
 function run(cwd: string, npmArgs: string[]) {
-  if (!npm) throw new Error('Run acceptance tests with npm run test:consumer');
+  if (!npm) throw new Error('Run e2e tests with npm run test:e2e');
   // npm scripts inherit repository bin paths and loader/configuration settings.
   // Keep the consumer's tool resolution independent of the invoking workspace.
   const env = Object.fromEntries(
