@@ -41,5 +41,9 @@
       "compilerOptions": [],
       "dynamicConfig": false
     }
-  }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT"
 }
