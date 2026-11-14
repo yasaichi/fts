@@ -9,7 +9,14 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { beforeAll, describe as context, describe, expect, it } from 'vitest';
+import {
+  assert,
+  beforeAll,
+  describe as context,
+  describe,
+  expect,
+  it,
+} from 'vitest';
 import { tsc } from './connection.js';
 import baseline from './fixtures/parity/volar-baseline.json' with {
   type: 'json',
@@ -74,12 +81,15 @@ describe('tsc --runExternalCode', () => {
             result.stdout.matchAll(
               /([^\s]+\.fts)\((\d+),(\d+)\): error (?:TS|fts)(\d+):/g,
             ),
-            ([, name, line, character, code]) => ({
-              file: name.split('/').at(-1),
-              code: Number(code),
-              line: Number(line) - 1,
-              character: Number(character) - 1,
-            }),
+            ([, name, line, character, code]) => {
+              assert.isDefined(name);
+              return {
+                file: name.split('/').at(-1),
+                code: Number(code),
+                line: Number(line) - 1,
+                character: Number(character) - 1,
+              };
+            },
           );
           expect(actual).toEqual(
             expect.arrayContaining(

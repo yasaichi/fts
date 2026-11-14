@@ -1,5 +1,5 @@
 import { SpanMapFeature, SpanMapKind } from 'typescript/ast';
-import { describe as context, describe, expect, it } from 'vitest';
+import { assert, describe as context, describe, expect, it } from 'vitest';
 import { createPipelineVirtualTypeScript } from '../../../src/features/pipeline-operator/editor-lowering.js';
 
 describe('createPipelineVirtualTypeScript(source, fileName)', () => {
@@ -68,11 +68,10 @@ describe('createPipelineVirtualTypeScript(source, fileName)', () => {
       );
 
       it('does not overlap generated spans', () => {
-        for (let index = 1; index < lowered.mappings.length; index++) {
-          const previous = lowered.mappings[index - 1];
-          expect(lowered.mappings[index][0]).toBeGreaterThanOrEqual(
-            previous[0] + previous[1],
-          );
+        for (const [index, current] of lowered.mappings.slice(1).entries()) {
+          const previous = lowered.mappings[index];
+          assert.isDefined(previous);
+          expect(current[0]).toBeGreaterThanOrEqual(previous[0] + previous[1]);
         }
       });
     });
