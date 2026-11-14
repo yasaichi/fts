@@ -21,5 +21,8 @@
   },
   "peerDependencies": {
     "prettier": "3.9.10"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }

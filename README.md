@@ -103,5 +103,6 @@ npm run verify
 ```
 
 - [Development commands](package.json)
+- [End-to-end tests](e2e/)
 - [VS Code editor verification](.agents/skills/verify-vscode-editor/SKILL.md)
 - [Architecture decisions](docs/adr/)

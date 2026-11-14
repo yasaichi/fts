@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "check": "npm run check --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present && tsc -p e2e/tsconfig.json",
     "format": "concurrently --kill-others-on-fail --names biome,fts \"biome check --write\" \"npm run format:fts\"",
     "format:check": "concurrently --kill-others-on-fail --names biome,fts \"biome check\" \"npm run format:fts:check\"",
     "format:fts": "npm run build -w @ftslang/prettier-plugin && prettier --plugin @ftslang/prettier-plugin --write \"**/*.fts\"",
@@ -24,12 +24,14 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "test": "npm run test --workspaces --if-present",
+    "test:e2e": "vitest run --config e2e/vitest.config.ts",
     "test:integration": "npm run test:integration --workspaces --if-present",
-    "verify": "concurrently --kill-others-on-fail --names checks,tests \"npm run verify:commit\" \"npm test && npm run build && npm run test:integration\"",
+    "verify": "concurrently --kill-others-on-fail --names checks,tests \"npm run verify:commit\" \"npm test\" && npm run build && concurrently --kill-others-on-fail --names integration,e2e \"npm run test:integration\" \"npm run test:e2e\"",
     "verify:commit": "concurrently --kill-others-on-fail --names format,lint,types \"npm run format:check\" \"npm run lint\" \"npm run check\""
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
+    "@jridgewell/trace-mapping": "0.3.31",
     "@types/node": "26.2.0",
     "concurrently": "10.0.7",
     "esbuild": "0.28.2",

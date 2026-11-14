@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
+    "module": "ESNext",
+    "moduleDetection": "force",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ESNext",
+    "types": ["node"],
+    "verbatimModuleSyntax": true
+  },
+  "contentMappers": [
+    {
+      "package": "@ftslang/content-mapper",
+      "extensions": [".fts"]
+    }
+  ],
+  "include": ["scripts", "src", "test", "vite.config.ts"]
+}
