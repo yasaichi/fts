@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Prepare VS Code sandbox
+      - name: Set up VS Code
         run: |
           node --input-type=module <<'NODE'
           import { execFileSync } from 'node:child_process';

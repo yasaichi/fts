@@ -1,6 +1,6 @@
 ---
 name: verify-vscode-editor
-description: Verify FTS in an actual VS Code editor, using an installed VSIX for distribution acceptance or an Extension Development Host for source verification. Exercise configured and inferred projects through the UI and report observed evidence; API tests alone do not prove visible editor behavior.
+description: Verify FTS end-to-end in an actual VS Code Extension Development Host after changes to the editor extension, grammar, mapper integration, or editor setup. Exercise configured and inferred projects through the UI and report observed evidence; CLI/LSP tests alone are not editor E2E verification.
 ---
 
 # Verify the FTS editor
@@ -11,12 +11,6 @@ test suites. A successful build or direct TypeScript LSP request does not prove
 that the official extension, selected SDK, FTS extension and grammar work together
 in a real editor.
 
-Choose the target explicitly. Use **installed VSIX mode** after packaging,
-dependency-bundling or SDK-loading changes. Use **development mode** for quick
-source verification. A development-host run cannot satisfy installed-VSIX
-acceptance, even if its editor observations pass. Keep target-specific setup and
-the common UI checks in this skill rather than introducing a parallel skill.
-
 ## Establish the environment
 
 Read the current versions and configuration before launching:
@@ -24,8 +18,6 @@ Read the current versions and configuration before launching:
 - `package.json` and the lockfile: supported Node/npm and pinned TypeScript.
 - `packages/vscode/package.json` and `packages/vscode/src/extension.ts`: supported
   VS Code, language identity, and the official TypeScript extension registration.
-- `packages/vscode/README.md` and `e2e/vscode.ts`: preview setup, selected-SDK
-  requirements, the installed-extension runner and external fixtures.
 - `.vscode/launch.json` and `fts.code-workspace`: development host arguments.
 - `packages/content-mapper/test/fixtures/parity/tsconfig.json` and its
   `pipeline.fts`: the configured project and stable diagnostic fixture.
@@ -36,9 +28,6 @@ user buffers and edits. Use `direnv exec .` for repository commands when availab
 Install locked dependencies if missing, then run `npm run build`; do not change a
 version pin to get past setup failures.
 
-For VSIX acceptance, also record the actual VSIX path and SHA-256. The source
-revision alone is not evidence of which package was installed.
-
 Use the desktop interaction tool available in the session (for example CUA's
 native Visual Studio Code app control). Read that tool's documentation first.
 Inspect the real UI, interact through its supported controls, and retain
@@ -47,49 +36,6 @@ can control and observe the editor, report **BLOCKED** with that missing capabil
 do not substitute mocks, source inspection or a headless LSP client for this run.
 
 ## Launch and connect the real extensions
-
-### Installed VSIX mode
-
-1. Run `WIREIT_LOGGER=simple FTS_VSIX_KEEP=1 npm run test:e2e:vscode`. It builds and packages FTS, installs
-   the real VSIX and pinned official TypeScript extension outside the checkout,
-   installs the supported SDK independently, and runs automated API acceptance.
-   Record its result and retained `/tmp/fts-vsix-*` evidence directory. A failed
-   automated run is not repaired by claiming the UI passed; diagnose it.
-2. In a new VS Code window, use that directory's `extensions` directory and a
-   fresh `profile-ui` user-data directory. Open its `inferred/pipeline.fts` as a
-   loose file without adding a workspace folder. Launch with
-   `--extensions-dir=<evidence>/extensions --user-data-dir=<evidence>/profile-ui`.
-   Use the tested VS Code version. Do not pass `--extensionDevelopmentPath` for
-   FTS or use repository `node_modules` as the SDK. Confirm the controlled window
-   and installed FTS identity (`ftslang.ftslang-vscode`) in the Extensions UI.
-   A fresh window can begin in Restricted Mode. Follow its normal Trust prompt for
-   the fixture window only before checking extension activation. If approval is
-   required, hand that decision to the user; do not disable Workspace Trust.
-3. Enable the official TypeScript 7 extension through its normal command. Its
-   default SDK currently lacks content mapper support. Observe FTS's unsupported
-   SDK warning and **Select TypeScript Version** action. Confirm the grammar still
-   works and FTS has not changed the user's SDK setting.
-4. Select the prepared SDK at `<evidence>/consumer/node_modules/typescript` using
-   the official settings and version picker. Follow normal trust, SDK and mapper
-   permission prompts; do not disable these protections. Observe the selected
-   version and path in the real UI/output. Restart the server if requested.
-5. Run the common UI checks below on the loose file. For the configured project,
-   open `<evidence>/consumer/src/pipeline.fts` and
-   `<evidence>/consumer/src/index.ts`. Both are external files using the packed npm
-   mapper. In this mode `result` is a **number**, `broken` has TS2322, and `index.ts`
-   imports `result` from the original `.fts` declaration.
-6. Switch to `<evidence>/SDK with spaces/node_modules/typescript` through the
-   official picker/settings and restart the server. Confirm the new path and
-   repeat hover plus one edit/diagnostic transition. The automated suite owns the
-   detailed SDK lifecycle assertions; this step checks the visible setup flow.
-
-API acceptance uses a separate test-driver extension and checks installed FTS
-through VS Code APIs. It does not prove completion UI, notification actions,
-grammar scopes, or permission prompts. Those observations belong to this skill.
-Keep automated and UI results separate. Linux API acceptance runs under Xvfb in
-CI; record which OS was actually observed through the UI.
-
-### Development mode
 
 1. In VS Code, open this repository and run the **Launch Future TypeScript**
    launch configuration (`F5`). It builds the packages and opens the dedicated
@@ -127,29 +73,28 @@ Do not select an unrelated SDK or use a Nightly extension as an unexplained fix.
 
 ## Observe the application behavior
 
-In **installed VSIX mode**, use the retained external `consumer/src/pipeline.fts`
-and `consumer/src/index.ts` for configured checks, and `inferred/pipeline.fts` for
-inferred checks. Do not substitute repository files for those consumer files.
-
-In **development mode**, use
-`packages/content-mapper/test/fixtures/parity/pipeline.fts` for configured checks.
-For inferred checks, save the snippet below outside the repository with no
-ancestor `tsconfig.json` or `jsconfig.json`, and open it **without** adding a
-workspace folder. Do not assume editable `examples/pipeline.fts` has stable content.
+Open `packages/content-mapper/test/fixtures/parity/pipeline.fts` in the host for the
+configured checks. Use this stable fixture rather than assuming the intentionally
+editable `examples/pipeline.fts` still contains a particular invalid function call.
+For inferred checks, save the snippet below in a new temporary directory outside
+the repository, verify that no ancestor has a `tsconfig.json` or `jsconfig.json`,
+and open the file in the same host **without** adding a folder or configuration.
+This tests the FTS extension's inferred-project mapper contribution rather than
+configured-project discovery.
 
 ```fts
 export const result = 1 |> % + 1;
 export const broken: number = "wrong";
 ```
 
-| Observation | Expected UI result |
-| --- | --- |
-| Grammar | For `.fts` in either mode/project type, language mode is **Future TypeScript**. **Developer: Inspect Editor Tokens and Scopes** shows `source.fts` and pipeline/topic token scopes. |
-| Hover | `result` is `string` only in the development configured fixture; it is `number` in all other fixtures. The range covers the original identifier, and `%` has no synthesized-variable hover. |
-| Completion | At EOF in an isolated unsaved edit, `input \|> Ma` in the development configured fixture, or `1 \|> Ma` in other fixtures, offers `Math` through Trigger Suggest. |
-| Definition | Development configured: the pipeline call to `parse` navigates to its original declaration. Installed configured: imported `result` in `index.ts` navigates to `pipeline.fts`. Inferred: a reference to `result` navigates to its declaration in that file. |
-| Diagnostics | Development configured: the final `%` passed to `Math.round` has **TS2345** at that topic. Installed configured and either inferred fixture: `broken` has **TS2322** at its original identifier. |
-| Edit propagation | Development configured: remove `broken`, then undo. Other fixtures: replace `"wrong"` with `1`, then undo. In every case the diagnostic disappears and returns in the visible Problems/editor UI. |
+| Observation | Configured fixture | Inferred file |
+| --- | --- | --- |
+| Grammar | Language mode is **Future TypeScript**; **Developer: Inspect Editor Tokens and Scopes** shows `source.fts`, with pipeline/topic token scopes | Same language mode and grammar scopes |
+| Hover | Hover the `result` declaration: `result: string`, with the range over the original identifier; topic `%` has no synthesized-variable hover | Hover `result`: `result: number` |
+| Completion | In an isolated unsaved edit, type `input \|> Ma` and invoke completion: `Math` is offered | Type `1 \|> Ma` in an isolated unsaved edit: `Math` is offered |
+| Definition | Go to definition on a pipeline call to `parse`: lands on its declaration in the original `.fts` file | Add a reference to `result`: go to definition lands on the declaration in this file |
+| Diagnostics | The final `%` passed to `Math.round` has **TS2345** at the original topic, not generated code | `broken` has **TS2322** at the original identifier |
+| Edit propagation | Remove the invalid `broken` statement: its diagnostic disappears; undo: it returns | Replace `"wrong"` with `1`: the diagnostic disappears; undo: it returns |
 
 Run completion probes at EOF without inserting a final newline, as during normal
 typing. Use **Trigger Suggest** (Control+Space), not **Trigger Inline Suggestion**.
