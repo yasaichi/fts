@@ -36,9 +36,32 @@
     ]
   },
   "scripts": {
-    "build": "esbuild src/extension.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
+    "build": "wireit",
     "check": "tsc",
-    "test": "npm run build -w @ftslang/content-mapper && vitest run"
+    "test": "wireit"
+  },
+  "wireit": {
+    "build": {
+      "command": "esbuild src/extension.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
+      "files": [
+        "../../tsconfig.base.json",
+        "package.json",
+        "src/**/*.ts",
+        "tsconfig*.json"
+      ],
+      "output": [
+        "dist/**"
+      ],
+      "dependencies": [
+        "../content-mapper:build"
+      ]
+    },
+    "test": {
+      "command": "vitest run",
+      "dependencies": [
+        "../content-mapper:build"
+      ]
+    }
   },
   "dependencies": {
     "@ftslang/content-mapper": "0.0.1"

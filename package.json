@@ -14,30 +14,116 @@
     "packages/vscode"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "check": "npm run check --workspaces --if-present && tsc -p e2e/tsconfig.json",
-    "format": "concurrently --kill-others-on-fail --names biome,fts \"biome check --write\" \"npm run format:fts\"",
-    "format:check": "concurrently --kill-others-on-fail --names biome,fts \"biome check\" \"npm run format:fts:check\"",
-    "format:fts": "npm run build -w @ftslang/prettier-plugin && prettier --plugin @ftslang/prettier-plugin --write \"**/*.fts\"",
-    "format:fts:check": "npm run build -w @ftslang/prettier-plugin && prettier --plugin @ftslang/prettier-plugin --check \"**/*.fts\"",
+    "build": "wireit",
+    "check": "wireit",
+    "format": "wireit",
+    "format:check": "wireit",
+    "format:fts": "wireit",
+    "format:fts:check": "wireit",
     "hooks:install": "git config set --local hook.fts-verify.command 'npm run verify:commit' && git config set --local --all hook.fts-verify.event pre-commit",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "test": "npm run test --workspaces --if-present",
-    "test:e2e": "vitest run --config e2e/vitest.config.ts",
-    "test:integration": "npm run test:integration --workspaces --if-present",
-    "verify": "concurrently --kill-others-on-fail --names checks,tests \"npm run verify:commit\" \"npm test\" && npm run build && concurrently --kill-others-on-fail --names integration,e2e \"npm run test:integration\" \"npm run test:e2e\"",
-    "verify:commit": "concurrently --kill-others-on-fail --names format,lint,types \"npm run format:check\" \"npm run lint\" \"npm run check\""
+    "test": "wireit",
+    "test:e2e": "wireit",
+    "test:integration": "wireit",
+    "verify": "wireit",
+    "verify:commit": "wireit"
+  },
+  "wireit": {
+    "build": {
+      "dependencies": [
+        "./packages/build:build",
+        "./packages/content-mapper:build",
+        "./packages/prettier-plugin:build",
+        "./packages/vscode:build"
+      ]
+    },
+    "check": {
+      "command": "tsc -p e2e/tsconfig.json",
+      "dependencies": [
+        "./packages/build:check",
+        "./packages/content-mapper:check",
+        "./packages/prettier-plugin:check",
+        "./packages/vscode:check"
+      ]
+    },
+    "format": {
+      "dependencies": [
+        "format:biome",
+        "format:fts"
+      ]
+    },
+    "format:biome": {
+      "command": "biome check --write"
+    },
+    "format:biome:check": {
+      "command": "biome check"
+    },
+    "format:check": {
+      "dependencies": [
+        "format:biome:check",
+        "format:fts:check"
+      ]
+    },
+    "format:fts": {
+      "command": "prettier --plugin @ftslang/prettier-plugin --write \"**/*.fts\"",
+      "dependencies": [
+        "./packages/prettier-plugin:build"
+      ]
+    },
+    "format:fts:check": {
+      "command": "prettier --plugin @ftslang/prettier-plugin --check \"**/*.fts\"",
+      "dependencies": [
+        "./packages/prettier-plugin:build"
+      ]
+    },
+    "test": {
+      "dependencies": [
+        "./packages/build:test",
+        "./packages/content-mapper:test",
+        "./packages/prettier-plugin:test",
+        "./packages/vscode:test"
+      ]
+    },
+    "test:e2e": {
+      "command": "vitest run --config e2e/vitest.config.ts",
+      "dependencies": [
+        "./packages/build:build",
+        "./packages/content-mapper:build",
+        "./packages/prettier-plugin:build"
+      ]
+    },
+    "test:integration": {
+      "dependencies": [
+        "./packages/content-mapper:test:integration"
+      ]
+    },
+    "verify": {
+      "dependencies": [
+        "build",
+        "test",
+        "test:e2e",
+        "test:integration",
+        "verify:commit"
+      ]
+    },
+    "verify:commit": {
+      "dependencies": [
+        "check",
+        "format:check",
+        "lint"
+      ]
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
     "@jridgewell/trace-mapping": "0.3.31",
     "@types/node": "26.2.0",
-    "concurrently": "10.0.7",
     "esbuild": "0.28.2",
     "oxlint": "1.78.0",
     "prettier": "3.9.10",
     "typescript": "7.1.0-beta",
-    "vitest": "4.1.12"
+    "vitest": "4.1.12",
+    "wireit": "0.15.0"
   }
 }

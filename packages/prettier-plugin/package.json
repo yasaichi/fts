@@ -15,9 +15,23 @@
     "node": ">=24.11"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "wireit",
     "check": "tsc",
     "test": "vitest run"
+  },
+  "wireit": {
+    "build": {
+      "command": "tsc -p tsconfig.build.json",
+      "files": [
+        "../../tsconfig.base.json",
+        "package.json",
+        "src/**/*.ts",
+        "tsconfig*.json"
+      ],
+      "output": [
+        "dist/**"
+      ]
+    }
   },
   "peerDependencies": {
     "prettier": "3.9.10"

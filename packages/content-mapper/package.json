@@ -17,11 +17,50 @@
     "node": ">=24.11"
   },
   "scripts": {
-    "build": "npm run build:types && esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --sourcemap && esbuild src/mapper.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/mapper.cjs --sourcemap",
-    "build:types": "tsc -p tsconfig.build.json",
+    "build": "wireit",
+    "build:types": "wireit",
     "check": "tsc",
     "test": "vitest run --project unit",
-    "test:integration": "vitest run --project integration"
+    "test:integration": "wireit"
+  },
+  "wireit": {
+    "build": {
+      "dependencies": [
+        "build:runtime",
+        "build:types"
+      ]
+    },
+    "build:runtime": {
+      "command": "esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --sourcemap && esbuild src/mapper.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/mapper.cjs --sourcemap",
+      "files": [
+        "../../tsconfig.base.json",
+        "package.json",
+        "src/**/*.ts",
+        "tsconfig*.json"
+      ],
+      "output": [
+        "dist/*.cjs",
+        "dist/*.cjs.map"
+      ]
+    },
+    "build:types": {
+      "command": "tsc -p tsconfig.build.json",
+      "files": [
+        "../../tsconfig.base.json",
+        "package.json",
+        "src/**/*.ts",
+        "tsconfig*.json"
+      ],
+      "output": [
+        "dist/**/*.d.ts"
+      ]
+    },
+    "test:integration": {
+      "command": "vitest run --project integration",
+      "dependencies": [
+        "build"
+      ]
+    }
   },
   "dependencies": {
     "@babel/core": "8.0.1",
