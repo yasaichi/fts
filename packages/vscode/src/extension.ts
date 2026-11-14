@@ -45,7 +45,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         contentMapper: {
           compilerOptions: string[];
           dynamicConfig: boolean;
-          exec: string[];
+          exec: [string, string];
         };
       };
     };

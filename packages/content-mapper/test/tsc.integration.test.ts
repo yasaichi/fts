@@ -72,22 +72,20 @@ describe('tsc --runExternalCode', () => {
         it('matches the pre-migration filenames, positions and codes', () => {
           const actual = Array.from(
             result.stdout.matchAll(
-              /([^\s]+\.fts)\((\d+),(\d+)\): error (?:TS|fts)(\d+):/g,
+              /[^\s]+\.fts\(\d+,\d+\): error (?:TS|fts)\d+:/g,
             ),
-            ([, name, line, character, code]) => ({
-              file: name.split('/').at(-1),
-              code: Number(code),
-              line: Number(line) - 1,
-              character: Number(character) - 1,
-            }),
+            ([header]) =>
+              header
+                .replace(/error (?:TS|fts)/, 'error ')
+                .split('/')
+                .at(-1),
           );
           expect(actual).toEqual(
             expect.arrayContaining(
-              diagnostics.map(({ code, range }) => ({
-                file,
-                code,
-                ...range.start,
-              })),
+              diagnostics.map(
+                ({ code, range }) =>
+                  `${file}(${range.start.line + 1},${range.start.character + 1}): error ${code}:`,
+              ),
             ),
           );
           expect(actual).toHaveLength(diagnostics.length);

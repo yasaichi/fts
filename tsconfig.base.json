@@ -1,14 +1,21 @@
 {
   "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
     "lib": ["ES2024"],
     "module": "NodeNext",
+    "moduleDetection": "force",
     "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
     "paths": {
       "@ftslang/build/vite": ["./packages/build/src/vite.ts"],
       "@ftslang/content-mapper": ["./packages/content-mapper/src/index.ts"]
     },
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2024"
+    "target": "ES2024",
+    "types": ["node"],
+    "verbatimModuleSyntax": true
   }
 }

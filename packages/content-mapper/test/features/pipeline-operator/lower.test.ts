@@ -68,11 +68,10 @@ describe('createPipelineVirtualTypeScript(source, fileName)', () => {
       );
 
       it('does not overlap generated spans', () => {
-        for (let index = 1; index < lowered.mappings.length; index++) {
-          const previous = lowered.mappings[index - 1];
-          expect(lowered.mappings[index][0]).toBeGreaterThanOrEqual(
-            previous[0] + previous[1],
-          );
+        let previousEnd = 0;
+        for (const [start, length] of lowered.mappings) {
+          expect(start).toBeGreaterThanOrEqual(previousEnd);
+          previousEnd = start + length;
         }
       });
     });

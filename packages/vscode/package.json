@@ -37,7 +37,7 @@
   },
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
-    "check": "tsc --noEmit",
+    "check": "tsc",
     "test": "npm run build -w @ftslang/content-mapper && vitest run"
   },
   "dependencies": {
