@@ -1,24 +1,30 @@
 {
   "name": "@ftslang/prettier-plugin",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
   "description": "Prettier language support for fts",
-  "main": "./dist/index.js",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=24.11"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
   },
-  "engines": {
-    "node": ">=24.11"
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "peerDependencies": {
+    "prettier": "3.9.10"
   },
+  "private": true,
   "scripts": {
     "build": "wireit",
     "check": "tsc",
     "test": "vitest run"
   },
+  "type": "module",
   "wireit": {
     "build": {
       "command": "tsc -p tsconfig.build.json",
@@ -32,11 +38,5 @@
         "dist/**"
       ]
     }
-  },
-  "peerDependencies": {
-    "prettier": "3.9.10"
-  },
-  "files": [
-    "dist"
-  ]
+  }
 }

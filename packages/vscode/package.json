@@ -1,15 +1,7 @@
 {
   "name": "ftslang-vscode",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
   "description": "FTS grammar and TypeScript content mapper registration",
-  "displayName": "Future TypeScript",
-  "engines": {
-    "node": ">=24.11",
-    "vscode": "^1.132.0"
-  },
-  "main": "./dist/extension.cjs",
+  "version": "0.0.1",
   "categories": [
     "Programming Languages"
   ],
@@ -35,11 +27,25 @@
       }
     ]
   },
+  "dependencies": {
+    "@ftslang/content-mapper": "0.0.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "1.145.0"
+  },
+  "displayName": "Future TypeScript",
+  "engines": {
+    "node": ">=24.11",
+    "vscode": "^1.132.0"
+  },
+  "main": "./dist/extension.cjs",
+  "private": true,
   "scripts": {
     "build": "wireit",
     "check": "tsc",
     "test": "wireit"
   },
+  "type": "module",
   "wireit": {
     "build": {
       "command": "esbuild src/extension.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
@@ -62,11 +68,5 @@
         "../content-mapper:build"
       ]
     }
-  },
-  "dependencies": {
-    "@ftslang/content-mapper": "0.0.1"
-  },
-  "devDependencies": {
-    "@types/vscode": "1.145.0"
   }
 }

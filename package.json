@@ -1,18 +1,23 @@
 {
   "name": "fts",
-  "version": "0.0.1",
-  "private": true,
   "description": "Proposal-aware TypeScript tooling experiments",
+  "version": "0.0.1",
+  "devDependencies": {
+    "@biomejs/biome": "2.5.8",
+    "@jridgewell/trace-mapping": "0.3.31",
+    "@types/node": "26.2.0",
+    "esbuild": "0.28.2",
+    "oxlint": "1.78.0",
+    "prettier": "3.9.10",
+    "typescript": "7.1.0-beta",
+    "vitest": "4.1.12",
+    "wireit": "0.15.0"
+  },
   "engines": {
     "node": ">=24.11",
     "npm": ">=11.10"
   },
-  "workspaces": [
-    "packages/content-mapper",
-    "packages/build",
-    "packages/prettier-plugin",
-    "packages/vscode"
-  ],
+  "private": true,
   "scripts": {
     "build": "wireit",
     "check": "wireit",
@@ -115,15 +120,10 @@
       ]
     }
   },
-  "devDependencies": {
-    "@biomejs/biome": "2.5.8",
-    "@jridgewell/trace-mapping": "0.3.31",
-    "@types/node": "26.2.0",
-    "esbuild": "0.28.2",
-    "oxlint": "1.78.0",
-    "prettier": "3.9.10",
-    "typescript": "7.1.0-beta",
-    "vitest": "4.1.12",
-    "wireit": "0.15.0"
-  }
+  "workspaces": [
+    "packages/content-mapper",
+    "packages/build",
+    "packages/prettier-plugin",
+    "packages/vscode"
+  ]
 }

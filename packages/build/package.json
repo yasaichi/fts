@@ -1,18 +1,31 @@
 {
   "name": "@ftslang/build",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
   "description": "Build integrations for fts",
+  "version": "0.0.1",
+  "dependencies": {
+    "@ftslang/content-mapper": "0.0.1",
+    "@jridgewell/remapping": "2.3.5",
+    "@swc/core": "1.16.22",
+    "unplugin": "3.7.0"
+  },
+  "devDependencies": {
+    "@jridgewell/trace-mapping": "0.3.31",
+    "vite": "8.3.8",
+    "vitest": "4.1.12"
+  },
+  "engines": {
+    "node": ">=24.11"
+  },
   "exports": {
     "./vite": {
       "types": "./dist/vite.d.ts",
       "default": "./dist/vite.mjs"
     }
   },
-  "engines": {
-    "node": ">=24.11"
-  },
+  "files": [
+    "dist"
+  ],
+  "private": true,
   "scripts": {
     "build": "wireit",
     "build:runtime": "wireit",
@@ -20,6 +33,7 @@
     "check": "tsc",
     "test": "wireit"
   },
+  "type": "module",
   "wireit": {
     "build": {
       "dependencies": [
@@ -62,19 +76,5 @@
         "build"
       ]
     }
-  },
-  "dependencies": {
-    "@ftslang/content-mapper": "0.0.1",
-    "@jridgewell/remapping": "2.3.5",
-    "@swc/core": "1.16.22",
-    "unplugin": "3.7.0"
-  },
-  "devDependencies": {
-    "@jridgewell/trace-mapping": "0.3.31",
-    "vite": "8.3.8",
-    "vitest": "4.1.12"
-  },
-  "files": [
-    "dist"
-  ]
+  }
 }
