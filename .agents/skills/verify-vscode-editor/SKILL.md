@@ -53,7 +53,9 @@ do not substitute mocks, source inspection or a headless LSP client for this run
    profile's settings, set `js/ts.tsdk.path` to the absolute path of this
    repository's `node_modules/typescript`, and `js/ts.contentMappers.enabled` to
    `true`. Prefer profile settings over modifying tracked workspace files. Record
-   any prior values so changes can be restored when appropriate.
+   any prior values so changes can be restored when appropriate. Selecting
+   **Use Workspace Version** can also write this setting into `fts.code-workspace`;
+   capture its original contents and restore only this run's addition at cleanup.
 4. Run **TypeScript: Select TypeScript Version** in the development host. Select
    **Use Workspace Version** and confirm the repository's pinned SDK version
    (currently **7.1.0-beta**), not the official extension's bundled **7.0.2** or
@@ -94,6 +96,12 @@ export const broken: number = "wrong";
 | Diagnostics | The final `%` passed to `Math.round` has **TS2345** at the original topic, not generated code | `broken` has **TS2322** at the original identifier |
 | Edit propagation | Remove the invalid `broken` statement: its diagnostic disappears; undo: it returns | Replace `"wrong"` with `1`: the diagnostic disappears; undo: it returns |
 
+Run completion probes at EOF without inserting a final newline, as during normal
+typing. Use **Trigger Suggest** (Control+Space), not **Trigger Inline Suggestion**.
+Confirm the selected command before accepting a fuzzy palette result: recently
+used inline-suggestion commands can appear first. Prefer Quick Open for known
+fixture paths and verify the selected file before navigating to a line.
+
 Restore each temporary buffer edit before the next observation so an unfinished
 completion probe cannot mask the diagnostic check. Use the editor's actual
 completion, hover, definition and Problems/diagnostic UI, not direct provider or
@@ -129,8 +137,9 @@ the README's upstream issue links if those features are explicitly requested.
   output errors. Identify skipped observations and why; skipped required rows
   cannot count as a full PASS. If checks remain unavailable, say what remains
   unverified rather than calling the implementation ready.
-- Keep editor evidence separate from results of `npm run verify` and
-  `npm run test:mapper`. This skill does not authorize commit, push or publishing.
+- Keep editor evidence separate from the CLI/LSP integration results of
+  `npm run test:integration`, which is also included in `npm run verify`. This skill
+  does not authorize commit, push or publishing.
 
 This workflow applies the verification-loop approach from
 [Getting started with loops](https://claude.com/resources/articles/getting-started-with-loops):
