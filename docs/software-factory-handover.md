@@ -756,6 +756,15 @@ choice.
 
 ## 14. What not to do yet
 
+The [agent brief](software-factory-agent-brief.md#immediate-priority-and-existing-implementation-plans)
+defines the current task, execution order, and relationship to existing
+implementation handoffs. Consult the [research synthesis](factory/research-synthesis.md)
+before defining evaluation methods. The former semantic checker and CLI plan
+was superseded by the TypeScript 7.1 content-mapper migration. The clean
+consumer and distribution work that replaced it remains backlog input whose
+relationship to the experiment will be decided after those methods are defined.
+The experiment topic is still open.
+
 Do not start by building a large software-factory framework.
 
 Do not start by inventing a universal YAML schema.

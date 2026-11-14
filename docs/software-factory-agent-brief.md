@@ -23,6 +23,28 @@ Read before doing anything else:
 Do not implement a factory framework before completing the research and
 operationalization phases.
 
+## Immediate priority and existing implementation plans
+
+The Phase 0 [research synthesis](factory/research-synthesis.md) is available.
+The Phase 1 [intent-recoverability proposal](factory/intent-recoverability.md)
+is drafted for review; its defaults are not yet adopted and no experiment has
+been run. Review its protocol choices and open questions. Phases 2–3 remain
+to be drafted before deep FTS analysis or choosing the experiment.
+
+The former semantic-checker and `fts-check` CLI plan is historical input, not
+current backlog. PR #11 replaced the Volar checker design with the TypeScript
+7.1 content mapper and native `tsc --runExternalCode`. The current product
+backlog starts with clean consumer and distribution acceptance. Its existence
+does not make implementation the next task or a prerequisite for this research.
+In Phases 4–5, determine whether that work is relevant to the selected
+experiment or should proceed separately afterward.
+
+When consulting local handoffs, treat `semantic-check-cli-handoff.md`, if
+present, as the completion record for that migration. The earlier
+`fts-quality-gate-dogfooding-handoff.md` plan for Volar checking and repository
+dogfooding is also superseded. Check current tracked code and ADR status rather
+than treating a handoff's repository snapshot as current.
+
 ---
 
 ## Core model
@@ -482,6 +504,15 @@ Good properties:
 - the scope is small enough to simulate counterfactual changes.
 
 Do not choose a toy problem detached from actual FTS architecture.
+
+Candidate topics include proposal-adapter revision or removal, and the boundary
+between shared language semantics and host integrations. These are starting
+points grounded in ADRs 2, 7, 9, 10, and 11, not a selected experiment or a claim
+about change probability.
+
+Select the topic only after Phases 0–4. Record why it supports two credible
+designs and an observable difference under a future change, using the evaluation
+protocols already defined. Do not assume that a more abstract design will win.
 
 ---
 
