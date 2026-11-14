@@ -72,7 +72,7 @@ describe('tsc --runExternalCode', () => {
         it('matches the pre-migration filenames, positions and codes', () => {
           const actual = Array.from(
             result.stdout.matchAll(
-              /([^\s]+\.fts)\((\d+),(\d+)\): error TS(\d+):/g,
+              /([^\s]+\.fts)\((\d+),(\d+)\): error (?:TS|fts)(\d+):/g,
             ),
             ([, name, line, character, code]) => ({
               file: name.split('/').at(-1),
