@@ -223,6 +223,10 @@ describe('packed FTS packages', () => {
         const manifest = JSON.parse(
           readFileSync(join(fixture, 'package.json'), 'utf8'),
         );
+        manifest.scripts = {
+          build: manifest.scripts.build,
+          start: manifest.scripts.start,
+        };
         manifest.devDependencies = {
           '@ftslang/build': tarballs['@ftslang/build'],
           vite: manifest.devDependencies.vite,

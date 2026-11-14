@@ -1,12 +1,18 @@
 {
   "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
     "module": "ESNext",
+    "moduleDetection": "force",
     "moduleResolution": "Bundler",
     "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2024",
-    "types": ["node"]
+    "target": "ESNext",
+    "types": ["node"],
+    "verbatimModuleSyntax": true
   },
   "contentMappers": [
     {
