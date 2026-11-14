@@ -14,11 +14,54 @@
     "node": ">=24.11"
   },
   "scripts": {
-    "build": "npm run build:types && npm run build:runtime",
-    "build:runtime": "esbuild src/vite.ts --bundle --packages=external --external:@ftslang/content-mapper --platform=node --target=node24 --format=esm --outfile=dist/vite.mjs --sourcemap",
-    "build:types": "tsc -p tsconfig.build.json",
+    "build": "wireit",
+    "build:runtime": "wireit",
+    "build:types": "wireit",
     "check": "tsc",
-    "test": "npm run build -w @ftslang/content-mapper && npm run build -w @ftslang/build && vitest run --exclude \"test/fixtures/**\""
+    "test": "wireit"
+  },
+  "wireit": {
+    "build": {
+      "dependencies": [
+        "../content-mapper:build",
+        "build:runtime",
+        "build:types"
+      ]
+    },
+    "build:runtime": {
+      "command": "esbuild src/vite.ts --bundle --packages=external --external:@ftslang/content-mapper --platform=node --target=node24 --format=esm --outfile=dist/vite.mjs --sourcemap",
+      "files": [
+        "../../tsconfig.base.json",
+        "package.json",
+        "src/**/*.ts",
+        "tsconfig*.json"
+      ],
+      "output": [
+        "dist/*.mjs",
+        "dist/*.mjs.map"
+      ]
+    },
+    "build:types": {
+      "command": "tsc -p tsconfig.build.json",
+      "files": [
+        "../../tsconfig.base.json",
+        "package.json",
+        "src/**/*.ts",
+        "tsconfig*.json"
+      ],
+      "output": [
+        "dist/**/*.d.ts"
+      ],
+      "dependencies": [
+        "../content-mapper:build:types"
+      ]
+    },
+    "test": {
+      "command": "vitest run --exclude \"test/fixtures/**\"",
+      "dependencies": [
+        "build"
+      ]
+    }
   },
   "dependencies": {
     "@ftslang/content-mapper": "0.0.1",
