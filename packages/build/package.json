@@ -24,7 +24,7 @@
     "@ftslang/content-mapper": "0.0.1",
     "@jridgewell/remapping": "2.3.5",
     "@swc/core": "1.15.47",
-    "unplugin": "3.3.0"
+    "unplugin": "3.7.0"
   },
   "devDependencies": {
     "@jridgewell/trace-mapping": "0.3.31",
