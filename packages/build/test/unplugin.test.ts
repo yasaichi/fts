@@ -1,5 +1,26 @@
 import { describe as context, describe, expect, it } from 'vitest';
-import { ftsIdFilter } from '../src/unplugin.js';
+import { ftsIdFilter, ftsPlugin } from '../src/unplugin.js';
+
+describe('FTS transform hook', () => {
+  context('when the module ID carries a query', () => {
+    it('maps the emitted JavaScript to the query-free source filename', async () => {
+      const plugin = ftsPlugin.raw(undefined, { framework: 'vite' });
+      if (Array.isArray(plugin) || typeof plugin.transform !== 'object') {
+        throw new Error('Expected one FTS transform hook');
+      }
+
+      // The hook does not use the build context; observe its returned map.
+      const result = await Reflect.apply(plugin.transform.handler, {}, [
+        'export const answer: number = 21 |> % * 2;',
+        '/project/src/pipeline.fts?fts-test',
+      ]);
+
+      expect(result.map).toMatchObject({
+        sources: ['/project/src/pipeline.fts'],
+      });
+    });
+  });
+});
 
 describe('ftsIdFilter', () => {
   describe('include', () => {
@@ -15,12 +36,12 @@ describe('ftsIdFilter', () => {
         included: true,
       },
       {
-        condition: 'the path ends in .ts',
+        condition: 'the path has an unrelated extension',
         id: '/project/src/index.ts',
         included: false,
       },
       {
-        condition: 'the path ends in .ftsx',
+        condition: 'the extension has extra characters after .fts',
         id: '/project/src/index.ftsx',
         included: false,
       },

@@ -152,6 +152,21 @@ describe('activate(context)', () => {
         mocks.activate.mockReturnValue(pending.promise);
       });
 
+      context('when the native extension is removed', () => {
+        it('does not register after the earlier activation finishes', async () => {
+          const activating = activate(extensionContext);
+          expect(mocks.registerContentMappers).not.toHaveBeenCalled();
+
+          mocks.getExtension.mockReturnValue(undefined);
+          await mocks.onDidChange.mock.calls[0][0]();
+          pending.resolve({
+            registerContentMappers: mocks.registerContentMappers,
+          });
+          await activating;
+          expect(mocks.registerContentMappers).not.toHaveBeenCalled();
+        });
+      });
+
       context('when the FTS extension is disposed', () => {
         it('does not register after activation finishes', async () => {
           const activating = activate(extensionContext);
