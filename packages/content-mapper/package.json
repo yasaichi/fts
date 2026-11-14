@@ -20,7 +20,7 @@
     "build:types": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
     "test": "vitest run --project unit",
-    "test:integration": "npm run build && vitest run --project integration"
+    "test:integration": "vitest run --project integration"
   },
   "dependencies": {
     "@babel/core": "8.0.1",
