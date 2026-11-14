@@ -50,6 +50,11 @@ From this package, `npm run package` builds `dist/ftslang.vsix` and `npm run
 test:e2e` installs and tests it in an isolated VS Code environment. The same tasks
 are available from the repository root with `--workspace ftslang-vscode`.
 
+The runner downloads its pinned VS Code version by default. On Linux, prepare
+Electron's sandbox helper as required by the OS, or use an existing VS Code
+1.145.2 installation with `FTS_VSCODE_EXECUTABLE=/absolute/path/to/code`. CI sets
+up the downloaded sandbox helper before launching the tests through Xvfb.
+
 The automated checks verify installed-extension behavior through VS Code APIs.
 The repository's `verify-vscode-editor` skill separately verifies the visible
 editor, version picker, permission prompts and notification actions.

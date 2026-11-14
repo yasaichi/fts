@@ -142,6 +142,7 @@ export async function run(): Promise<void> {
 
   describe('installed FTS VSIX', () => {
     before(async () => {
+      assert.equal(version, '1.145.2');
       document = await workspace.openTextDocument(
         Uri.file(join(directory, 'inferred/pipeline.fts')),
       );

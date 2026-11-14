@@ -159,10 +159,12 @@ try {
   );
   const vsix = join(directory, 'ftslang.vsix');
   cpSync(join(repository, 'packages/vscode/dist/ftslang.vsix'), vsix);
-  const executable = await downloadAndUnzipVSCode({
-    cachePath: join(repository, '.vscode-test'),
-    version: '1.145.2',
-  });
+  const executable =
+    process.env.FTS_VSCODE_EXECUTABLE ??
+    (await downloadAndUnzipVSCode({
+      cachePath: join(repository, '.vscode-test'),
+      version: '1.145.2',
+    }));
   const [cli, ...cliArgs] = resolveCliArgsFromVSCodeExecutablePath(executable, {
     reuseMachineInstall: true,
   });
