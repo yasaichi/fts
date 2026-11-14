@@ -52,7 +52,7 @@ function check(files: string[]) {
 
 describe('tsc --runExternalCode', () => {
   context.each(baseline.files)(
-    'when checking $file',
+    'when $condition',
     ({ file, diagnostics, exitStatus }) => {
       let result: ReturnType<typeof check>;
 

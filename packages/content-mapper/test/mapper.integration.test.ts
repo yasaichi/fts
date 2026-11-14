@@ -39,7 +39,7 @@ describe('content mapper stdio protocol', () => {
       });
     });
 
-    context('when only UTF-8 positions are supported', () => {
+    context('when UTF-16 positions are not supported', () => {
       it('rejects the unsupported position encoding', async () => {
         await expect(
           connection.sendRequest('initialize', {
@@ -51,7 +51,7 @@ describe('content mapper stdio protocol', () => {
   });
 
   describe('project lifecycle', () => {
-    context('when two independent projects are opened', () => {
+    context('when multiple independent projects are opened', () => {
       it('isolates project handles and releases a closed project', async () => {
         expect(
           await Promise.all(

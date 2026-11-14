@@ -36,12 +36,12 @@ describe('ftsIdFilter', () => {
         included: true,
       },
       {
-        condition: 'the path ends in .ts',
+        condition: 'the path has an unrelated extension',
         id: '/project/src/index.ts',
         included: false,
       },
       {
-        condition: 'the path ends in .ftsx',
+        condition: 'the extension has extra characters after .fts',
         id: '/project/src/index.ftsx',
         included: false,
       },

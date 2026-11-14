@@ -2,6 +2,7 @@
   "origin": "Volar 2.4.28 checker / TypeScript 6.0.3, captured before removal; exitStatus is the checker error exit policy (0/1).",
   "files": [
     {
+      "condition": "ordinary TypeScript source contains type errors",
       "file": "ordinary.fts",
       "exitStatus": 1,
       "diagnostics": [
@@ -34,6 +35,7 @@
       ]
     },
     {
+      "condition": "a pipeline contains a type error",
       "file": "pipeline.fts",
       "exitStatus": 1,
       "diagnostics": [
@@ -53,6 +55,7 @@
       ]
     },
     {
+      "condition": "a pipeline is well typed",
       "file": "valid.fts",
       "exitStatus": 0,
       "diagnostics": []
