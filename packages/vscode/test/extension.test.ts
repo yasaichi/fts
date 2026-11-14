@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url';
 import type { ContentMapperContribution } from 'typescript/vscode';
 import {
   afterEach,
-  assert,
   beforeEach,
   describe as context,
   describe,
@@ -17,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   activate: vi.fn<() => Promise<unknown>>(),
   dispose: vi.fn<() => void>(),
   getExtension: vi.fn<(id: string) => unknown>(),
-  onDidChange: vi.fn<(listener: () => unknown) => { dispose: () => void }>(),
+  notifyExtensionsChanged: vi.fn<() => unknown>(),
   registerContentMappers:
     vi.fn<
       (
@@ -29,7 +28,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('vscode', () => ({
   extensions: {
     getExtension: mocks.getExtension,
-    onDidChange: mocks.onDidChange,
+    onDidChange(listener: () => unknown) {
+      mocks.notifyExtensionsChanged.mockImplementation(listener);
+      return { dispose: () => mocks.notifyExtensionsChanged.mockReset() };
+    },
   },
   Uri: { file: (fsPath: string) => ({ scheme: 'file', fsPath }) },
 }));
@@ -43,12 +45,6 @@ function findNativeExtension(id: string) {
     : undefined;
 }
 
-function notifyExtensionsChanged() {
-  const [subscription] = mocks.onDidChange.mock.calls;
-  assert.isDefined(subscription);
-  return subscription[0]();
-}
-
 describe('activate(context)', () => {
   let extensionContext: ExtensionContext;
 
@@ -58,7 +54,6 @@ describe('activate(context)', () => {
       extensionUri: { fsPath: fileURLToPath(new URL('../', import.meta.url)) },
       subscriptions: [],
     } as unknown as ExtensionContext;
-    mocks.onDidChange.mockReturnValue({ dispose: vi.fn<() => void>() });
   });
 
   afterEach(() => vi.resetAllMocks());
@@ -117,7 +112,7 @@ describe('activate(context)', () => {
       describe('extension changes', () => {
         it('keeps the existing registration', async () => {
           expect(mocks.registerContentMappers).toHaveBeenCalledOnce();
-          await notifyExtensionsChanged();
+          await mocks.notifyExtensionsChanged();
           expect(mocks.registerContentMappers).toHaveBeenCalledOnce();
         });
       });
@@ -138,12 +133,12 @@ describe('activate(context)', () => {
           expect(mocks.dispose).not.toHaveBeenCalled();
 
           mocks.getExtension.mockReturnValue(undefined);
-          await notifyExtensionsChanged();
+          await mocks.notifyExtensionsChanged();
           expect(mocks.dispose).toHaveBeenCalledOnce();
           expect(mocks.registerContentMappers).toHaveBeenCalledOnce();
 
           mocks.getExtension.mockImplementation(findNativeExtension);
-          await notifyExtensionsChanged();
+          await mocks.notifyExtensionsChanged();
           expect(mocks.registerContentMappers).toHaveBeenCalledTimes(2);
           expect(mocks.dispose).toHaveBeenCalledOnce();
         });
@@ -164,7 +159,7 @@ describe('activate(context)', () => {
           expect(mocks.registerContentMappers).not.toHaveBeenCalled();
 
           mocks.getExtension.mockReturnValue(undefined);
-          await notifyExtensionsChanged();
+          await mocks.notifyExtensionsChanged();
           pending.resolve({
             registerContentMappers: mocks.registerContentMappers,
           });
@@ -194,7 +189,7 @@ describe('activate(context)', () => {
           const activating = activate(extensionContext);
           expect(mocks.registerContentMappers).not.toHaveBeenCalled();
 
-          const changing = notifyExtensionsChanged();
+          const changing = mocks.notifyExtensionsChanged();
           pending.resolve({
             registerContentMappers: mocks.registerContentMappers,
           });
@@ -231,7 +226,7 @@ describe('activate(context)', () => {
       it('registers when the extension is discovered', async () => {
         expect(mocks.registerContentMappers).not.toHaveBeenCalled();
         mocks.getExtension.mockImplementation(findNativeExtension);
-        await notifyExtensionsChanged();
+        await mocks.notifyExtensionsChanged();
         expect(mocks.registerContentMappers).toHaveBeenCalledOnce();
       });
     });
