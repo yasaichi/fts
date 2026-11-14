@@ -20,6 +20,6 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "prettier": "3.9.0"
+    "prettier": "3.9.10"
   }
 }
