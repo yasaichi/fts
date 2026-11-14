@@ -164,7 +164,7 @@ describe('FTS editor integration', () => {
       './fixtures/parity/incomplete-pipeline.fts',
       import.meta.url,
     ).href;
-    const text = readFileSync(fileURLToPath(fileUri), 'utf8');
+    const text = readFileSync(fileURLToPath(fileUri), 'utf8').trimEnd();
 
     beforeAll(async () => {
       await connection.sendNotification('textDocument/didOpen', {

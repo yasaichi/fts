@@ -125,7 +125,13 @@ function createSourceMappings(
   unmappedSourceRanges: readonly SourceRange[],
   input: CodeMappingsInput,
 ): SpanMapping[] {
-  return points.map((point): SpanMapping => {
+  // EOF points anchor topic projections but have no token for a native span.
+  const tokenPoints = points.filter(
+    ({ generatedOffset, sourceOffset }) =>
+      generatedOffset < input.generated.length &&
+      sourceOffset < input.source.length,
+  );
+  return tokenPoints.map((point): SpanMapping => {
     const generatedLength = tokenLengthWithin(
       generatedTokenLengthAt,
       point.generatedOffset,

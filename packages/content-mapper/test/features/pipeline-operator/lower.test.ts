@@ -80,6 +80,71 @@ describe('createPipelineVirtualTypeScript(source, fileName)', () => {
 
   context.each([
     {
+      condition: 'a complete pipeline ends without a newline',
+      identifier: 'parse',
+      source: 'const result = input |> parse(%)',
+    },
+    {
+      condition: 'an unfinished pipeline ends without a newline',
+      identifier: 'Ma',
+      source: 'const result = input |> Ma',
+    },
+    {
+      condition: 'an unfinished pipeline ends with a newline',
+      identifier: 'Ma',
+      source: 'const result = input |> Ma\n',
+    },
+  ])('when $condition', ({ identifier, source }) => {
+    const lowered = createPipelineVirtualTypeScript(source, 'editing.fts');
+
+    describe('mappings', () => {
+      it('keeps every span inside its source and generated text', () => {
+        for (const [
+          start,
+          length,
+          sourceStart,
+          sourceLength,
+        ] of lowered.mappings) {
+          expect(start + length).toBeLessThanOrEqual(lowered.code.length);
+          expect(sourceStart + sourceLength).toBeLessThanOrEqual(source.length);
+        }
+      });
+
+      it('retains semantic access to the identifier', () => {
+        expect(lowered.mappings).toContainEqual([
+          lowered.code.indexOf(identifier),
+          identifier.length,
+          source.indexOf(identifier),
+          identifier.length,
+          SpanMapKind.Verbatim,
+          SpanMapFeature.All,
+        ]);
+      });
+    });
+  });
+
+  context('when the final pipeline topic is at the end of the file', () => {
+    const source = 'const result = "x" |> % - %';
+    const lowered = createPipelineVirtualTypeScript(source, 'topic-eof.fts');
+
+    describe('mappings', () => {
+      it('projects the final generated operand to a source topic', () => {
+        const operand = lowered.code.lastIndexOf(' - ') + ' - '.length;
+        const projection = lowered.mappings.find(
+          ([start, length, sourceStart, sourceLength, kind, features]) =>
+            start <= operand &&
+            operand < start + length &&
+            source.slice(sourceStart, sourceStart + sourceLength) === '%' &&
+            kind === SpanMapKind.Atom &&
+            features === 0,
+        );
+        expect(projection).toBeDefined();
+      });
+    });
+  });
+
+  context.each([
+    {
       condition: 'a same-line surrogate pair precedes the identifier',
       source: 'const label = "🌱"; const 日本語: number = 42',
     },
