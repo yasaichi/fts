@@ -8,9 +8,8 @@
     "npm": ">=11.10"
   },
   "workspaces": [
-    "packages/language-core",
+    "packages/content-mapper",
     "packages/build",
-    "packages/language-server",
     "packages/prettier-plugin",
     "packages/vscode"
   ],
@@ -25,7 +24,8 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "test": "npm run test --workspaces --if-present",
-    "verify": "concurrently --kill-others-on-fail --names commit,test \"npm run verify:commit\" \"npm test\" && npm run build",
+    "test:integration": "npm run test:integration --workspaces --if-present",
+    "verify": "concurrently --kill-others-on-fail --names checks,tests \"npm run verify:commit\" \"npm test && npm run build && npm run test:integration\"",
     "verify:commit": "concurrently --kill-others-on-fail --names format,lint,types \"npm run format:check\" \"npm run lint\" \"npm run check\""
   },
   "devDependencies": {
@@ -35,7 +35,7 @@
     "esbuild": "0.28.2",
     "oxlint": "1.78.0",
     "prettier": "3.9.0",
-    "typescript": "6.0.3",
+    "typescript": "7.1.0-beta",
     "vitest": "4.1.10"
   }
 }

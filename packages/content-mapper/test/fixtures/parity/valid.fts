@@ -1,0 +1,3 @@
+declare const input: string;
+declare function parse(value: string): { id: number };
+export const result = input |> parse(%) |> %.id;

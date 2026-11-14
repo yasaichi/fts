@@ -8,9 +8,10 @@
       "runtimeExecutable": "${execPath}",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
-        "--profile-temp",
+        "--profile=FTS Mapper Test",
         "--skip-release-notes",
         "--skip-welcome",
+        "${workspaceFolder}/fts.code-workspace",
         "${workspaceFolder}/examples/pipeline.fts"
       ],
       "outFiles": ["${workspaceFolder}/packages/*/dist/*.cjs"],

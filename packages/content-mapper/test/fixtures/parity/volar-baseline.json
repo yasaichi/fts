@@ -1,0 +1,61 @@
+{
+  "origin": "Volar 2.4.28 checker / TypeScript 6.0.3, captured before removal; exitStatus is the checker error exit policy (0/1).",
+  "files": [
+    {
+      "file": "ordinary.fts",
+      "exitStatus": 1,
+      "diagnostics": [
+        {
+          "code": 2304,
+          "range": {
+            "start": {
+              "line": 2,
+              "character": 23
+            },
+            "end": {
+              "line": 2,
+              "character": 34
+            }
+          }
+        },
+        {
+          "code": 2322,
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 13
+            },
+            "end": {
+              "line": 1,
+              "character": 16
+            }
+          }
+        }
+      ]
+    },
+    {
+      "file": "pipeline.fts",
+      "exitStatus": 1,
+      "diagnostics": [
+        {
+          "code": 2345,
+          "range": {
+            "start": {
+              "line": 4,
+              "character": 54
+            },
+            "end": {
+              "line": 4,
+              "character": 55
+            }
+          }
+        }
+      ]
+    },
+    {
+      "file": "valid.fts",
+      "exitStatus": 0,
+      "diagnostics": []
+    }
+  ]
+}

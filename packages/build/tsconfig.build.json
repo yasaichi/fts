@@ -6,7 +6,7 @@
     "noEmit": false,
     "outDir": "dist",
     "paths": {
-      "@ftslang/core": ["../language-core/dist/index.d.ts"]
+      "@ftslang/content-mapper": ["../content-mapper/dist/index.d.ts"]
     },
     "rootDir": "src"
   },

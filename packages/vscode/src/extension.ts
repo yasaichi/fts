@@ -1,50 +1,71 @@
-import { type ExtensionContext, workspace } from 'vscode';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
+import type { ExtensionAPI } from 'typescript/vscode';
 import {
-  LanguageClient,
-  type LanguageClientOptions,
-  type ServerOptions,
-  TransportKind,
-} from 'vscode-languageclient/node';
-import { futureTypeScriptLanguageId } from './language-id.js';
-
-let client: LanguageClient | undefined;
+  type Disposable,
+  type ExtensionContext,
+  extensions,
+  Uri,
+} from 'vscode';
 
 export async function activate(context: ExtensionContext): Promise<void> {
-  const serverModule = require.resolve('@ftslang/server');
-  const serverOptions: ServerOptions = {
-    debug: {
-      module: serverModule,
-      options: { execArgv: ['--nolazy', '--inspect=6009'] },
-      transport: TransportKind.ipc,
-    },
-    run: {
-      module: serverModule,
-      transport: TransportKind.ipc,
-    },
-  };
-  const clientOptions: LanguageClientOptions = {
-    documentSelector: [
+  let registration: Disposable | undefined;
+  let disposed = false;
+  const register = async (): Promise<void> => {
+    const extension = extensions.getExtension<ExtensionAPI>(
+      'TypeScriptTeam.native-preview',
+    );
+    if (!extension) {
+      registration?.dispose();
+      registration = undefined;
+      return;
+    }
+    if (registration) return;
+    const api = await extension.activate();
+    if (!api?.registerContentMappers || registration || disposed) return;
+    const require = createRequire(
+      context.extensionUri.fsPath + '/package.json',
+    );
+    const manifestPath = require.resolve(
+      '@ftslang/content-mapper/package.json',
+    );
+    const manifest = require(manifestPath) as {
+      name: string;
+      version: string;
+      typescript: {
+        contentMapper: {
+          compilerOptions: string[];
+          dynamicConfig: boolean;
+          exec: string[];
+        };
+      };
+    };
+    const mapper = manifest.typescript.contentMapper;
+    registration = api.registerContentMappers(context.extension.id, [
       {
-        language: futureTypeScriptLanguageId,
-        scheme: 'file',
+        extensions: ['.fts'],
+        inferredProjectContribution: {
+          manifest: {
+            name: manifest.name,
+            version: manifest.version,
+            compilerOptions: mapper.compilerOptions,
+            dynamicConfig: mapper.dynamicConfig,
+            cwd: Uri.file(dirname(manifestPath)),
+            exec: [
+              process.execPath,
+              resolve(dirname(manifestPath), mapper.exec[1]),
+            ],
+          },
+        },
       },
-    ],
-    synchronize: {
-      fileEvents: workspace.createFileSystemWatcher('**/*.fts'),
-    },
+    ]);
   };
-
-  client = new LanguageClient(
-    'future-typescript-language-server',
-    'Future TypeScript Language Server',
-    serverOptions,
-    clientOptions,
-  );
-  context.subscriptions.push(client);
-
-  await client.start();
-}
-
-export function deactivate(): Thenable<void> | undefined {
-  return client?.stop();
+  context.subscriptions.push({
+    dispose: () => {
+      disposed = true;
+      registration?.dispose();
+    },
+  });
+  context.subscriptions.push(extensions.onDidChange(register));
+  await register();
 }

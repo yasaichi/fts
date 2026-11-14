@@ -1,0 +1,3 @@
+// UTF-16 positions must survive non-ASCII text and astral characters: 🌱
+export const 日本語: number = "wrong";
+export const missing = unknownName;

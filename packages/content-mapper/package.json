@@ -1,0 +1,45 @@
+{
+  "name": "@ftslang/content-mapper",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "TypeScript content mapper and proposal lowering for FTS",
+  "main": "./dist/index.cjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=24.11"
+  },
+  "scripts": {
+    "build": "npm run build:types && esbuild src/index.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --sourcemap && esbuild src/mapper.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/mapper.cjs --sourcemap",
+    "build:types": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "test": "vitest run --project unit",
+    "test:integration": "npm run build && vitest run --project integration"
+  },
+  "dependencies": {
+    "@babel/core": "8.0.1",
+    "@babel/plugin-proposal-pipeline-operator": "8.0.1",
+    "@jridgewell/trace-mapping": "0.3.31",
+    "typescript": "7.1.0-beta",
+    "vscode-jsonrpc": "9.0.0"
+  },
+  "devDependencies": {
+    "@types/babel__core": "7.20.5"
+  },
+  "typescript": {
+    "contentMapper": {
+      "exec": [
+        "node",
+        "dist/mapper.cjs"
+      ],
+      "compilerOptions": [],
+      "dynamicConfig": false
+    }
+  }
+}
