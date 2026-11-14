@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 ## Status
 
-Accepted
+Superseded by [ADR 0013](0013-bundle-the-editor-runtime-and-reuse-the-selected-typescript-sdk.md)
 
 ## Context
 

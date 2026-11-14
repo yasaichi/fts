@@ -36,35 +36,83 @@
   "displayName": "Future TypeScript",
   "engines": {
     "node": ">=24.11",
-    "vscode": "^1.132.0"
+    "vscode": "^1.145.2"
   },
+  "extensionDependencies": [
+    "TypeScriptTeam.native-preview"
+  ],
+  "files": [
+    "dist/extension.cjs",
+    "dist/extension.cjs.map",
+    "dist/mapper.mjs",
+    "dist/mapper.mjs.map",
+    "dist/THIRD_PARTY_NOTICES.txt",
+    "language-configuration.json",
+    "syntaxes"
+  ],
   "main": "./dist/extension.cjs",
+  "preview": true,
   "private": true,
+  "publisher": "ftslang",
   "scripts": {
     "build": "wireit",
     "check": "tsc",
-    "test": "wireit"
+    "package": "wireit",
+    "test": "wireit",
+    "test:e2e": "wireit"
   },
   "type": "module",
   "wireit": {
     "build": {
-      "command": "esbuild src/extension.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
+      "command": "node scripts/build.ts",
       "files": [
+        "../../package-lock.json",
         "../../tsconfig.base.json",
+        "../content-mapper/package.json",
+        "../content-mapper/src/**/*.ts",
         "package.json",
+        "scripts/**/*.ts",
         "src/**/*.ts",
         "tsconfig*.json"
       ],
       "output": [
-        "dist/**"
+        "dist/*.cjs",
+        "dist/*.cjs.map",
+        "dist/*.json",
+        "dist/*.mjs",
+        "dist/*.mjs.map",
+        "dist/*.txt"
       ],
       "dependencies": [
         "../content-mapper:build"
       ]
     },
+    "package": {
+      "command": "vsce package --no-dependencies --allow-missing-repository --skip-license --out dist/ftslang.vsix",
+      "dependencies": [
+        "build"
+      ],
+      "files": [
+        "README.md",
+        "language-configuration.json",
+        "package.json",
+        "syntaxes/**"
+      ],
+      "output": [
+        "dist/ftslang.vsix"
+      ]
+    },
     "test": {
       "command": "vitest run",
       "dependencies": [
+        "../content-mapper:build"
+      ]
+    },
+    "test:e2e": {
+      "command": "node ../../e2e/vscode.ts",
+      "dependencies": [
+        "package",
+        "../../:build:editor-tests",
         "../content-mapper:build"
       ]
     }

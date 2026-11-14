@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -17,7 +18,7 @@ jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -38,4 +39,4 @@ jobs:
         run: npm ci
 
       - name: Verify
-        run: npm run verify
+        run: xvfb-run -a npm run verify

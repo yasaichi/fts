@@ -5,8 +5,12 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
     "@jridgewell/trace-mapping": "0.3.31",
+    "@types/mocha": "10.0.10",
     "@types/node": "26.2.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.1.0",
     "esbuild": "0.28.2",
+    "mocha": "12.0.3",
     "oxlint": "1.78.0",
     "prettier": "3.9.10",
     "typescript": "7.1.0-beta",
@@ -30,6 +34,8 @@
     "lint:fix": "oxlint --fix .",
     "test": "wireit",
     "test:e2e": "wireit",
+    "test:e2e:npm": "wireit",
+    "test:e2e:vscode": "wireit",
     "test:integration": "wireit",
     "verify": "wireit",
     "verify:commit": "wireit"
@@ -41,6 +47,15 @@
         "./packages/content-mapper:build",
         "./packages/prettier-plugin:build",
         "./packages/vscode:build"
+      ]
+    },
+    "build:editor-tests": {
+      "command": "esbuild e2e/vscode.test.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outfile=e2e/dist/vscode.test.cjs",
+      "files": [
+        "e2e/vscode.test.ts"
+      ],
+      "output": [
+        "e2e/dist/**"
       ]
     },
     "check": {
@@ -91,11 +106,22 @@
       ]
     },
     "test:e2e": {
+      "dependencies": [
+        "test:e2e:npm",
+        "test:e2e:vscode"
+      ]
+    },
+    "test:e2e:npm": {
       "command": "vitest run --config e2e/vitest.config.ts",
       "dependencies": [
         "./packages/build:build",
         "./packages/content-mapper:build",
         "./packages/prettier-plugin:build"
+      ]
+    },
+    "test:e2e:vscode": {
+      "dependencies": [
+        "./packages/vscode:test:e2e"
       ]
     },
     "test:integration": {

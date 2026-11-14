@@ -19,6 +19,7 @@
       "**/*.json",
       "**/*.cjs",
       "!!**/dist",
+      "!!.vscode-test",
       "!package-lock.json",
       "!packages/vscode/language-configuration.json"
     ]
