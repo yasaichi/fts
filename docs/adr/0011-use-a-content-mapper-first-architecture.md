@@ -45,8 +45,9 @@ Keep four workspace packages:
   launching the mapper or sharing its editor failure policy.
 
 Remove the Volar language plugin, the standalone language-server package, and
-the LSP client. Do not introduce a replacement FTS checker. PR #9's Volar checker
-is superseded by `tsc --runExternalCode`; closing that PR is a maintainer action.
+the LSP client. Do not introduce a replacement FTS checker.
+[PR #9](https://github.com/yasaichi/fts/pull/9)'s Volar checker is superseded by
+`tsc --runExternalCode`; closing that PR is a maintainer action.
 Keep CI's existing formatting, lint, type, test and build checks, and add required
 real TypeScript mapper integration tests rather than retaining checker plumbing.
 
@@ -92,5 +93,5 @@ accurate type information resumes when syntax is repaired.
 Grammar and native editor registration also need verification in a real VS Code
 extension host in addition to the TypeScript LSP contract tests.
 
-Native TypeScript exit codes apply; the [README](../../README.md#configure-typescript)
-documents the CLI behavior.
+Native TypeScript exit codes apply, as covered by the
+[CLI parity tests](../../packages/content-mapper/test/tsc.integration.test.ts).

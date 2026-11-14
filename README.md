@@ -75,10 +75,6 @@ Run the compiler with explicit permission to execute external code:
 ```sh
 npx tsc --runExternalCode
 ```
-The superseded PR #9 checker used exit 1 for diagnostics and exit 2 for execution
-errors. Native `tsc --noEmit` uses exit 2 for diagnostics (outputs skipped) and exit
-0 for success. The migration preserves diagnostic locations/codes and successful
-versus failed checks, adopting native exit codes without a compatibility wrapper.
 
 FTS never adds this flag for consumers.
 
@@ -106,23 +102,6 @@ npm install
 npm run verify
 ```
 
-`npm run verify` runs formatting, lint and type checks alongside the test,
-build and native TypeScript integration sequence. Run `npm run test:integration`
-to execute the CLI/language-server integration suite on its own. A missing or
-incompatible TypeScript binary fails the suite. These tests do not launch the
-VS Code extension host or verify its connection to the official TypeScript
-extension.
-
-In `packages/content-mapper`, Vitest discovers `*.integration.test.ts` files as the
-`integration` project and other standard test files as the `unit` project. New test
-files matching those conventions need no script changes. Fixture-only tests in
-`packages/build/test/fixtures` run through their fixture's own configuration.
-
-Editor E2E verification is defined in the repository's
-[`verify-vscode-editor` agent skill](.agents/skills/verify-vscode-editor/SKILL.md).
-It exercises the actual VS Code Extension Development Host in configured and
-inferred projects; passing the CLI/LSP suites alone does not complete that check.
-
-Accepted decisions and their trade-offs are recorded in
-[`docs/adr/`](docs/adr/). Tests and executable configuration define current
-behavior.
+- [Development commands](package.json)
+- [VS Code editor verification](.agents/skills/verify-vscode-editor/SKILL.md)
+- [Architecture decisions](docs/adr/)
