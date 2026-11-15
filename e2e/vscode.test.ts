@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
-import { setTimeout as delay } from 'node:timers/promises';
-import Mocha, {
+import {
   afterEach,
   before,
   beforeEach,
   describe as context,
   describe,
   it,
-} from 'mocha';
+  run as runTests,
+} from 'node:test';
+import { setTimeout as delay } from 'node:timers/promises';
+import { inspect } from 'node:util';
 import type { ExtensionAPI, TypeScriptSDK } from 'typescript/vscode';
 import {
   type CompletionList,
@@ -123,11 +125,9 @@ export async function run(): Promise<void> {
   );
   const mode = process.env.FTS_VSIX_ACCEPTANCE_MODE;
   const source = readFileSync(join(directory, 'inferred/pipeline.fts'), 'utf8');
-  const mocha = new Mocha({ timeout: 60000 });
-  mocha.suite.emit('pre-require', globalThis, __filename, mocha);
   const observations: { name: string; error?: string }[] = [];
   let api: ExtensionAPI;
-  let sdk: TypeScriptSDK;
+  let sdk: TypeScriptSDK | undefined;
   let document: TextDocument;
 
   async function selectSDK(path: string): Promise<TypeScriptSDK> {
@@ -140,246 +140,274 @@ export async function run(): Promise<void> {
     return selected;
   }
 
-  describe('installed FTS VSIX', () => {
-    before(async () => {
-      assert.equal(version, '1.145.2');
-      document = await workspace.openTextDocument(
-        Uri.file(join(directory, 'inferred/pipeline.fts')),
-      );
-      await window.showTextDocument(document, { preview: false });
-      const official = extensions.getExtension<ExtensionAPI>(
-        'TypeScriptTeam.native-preview',
-      );
-      assert(official);
-      assert.equal(official.packageJSON.version, '1.0.2');
-      api = await official.activate();
-      sdk = await initialized(api);
-      assert.equal(sdk.version, mode === 'supported' ? '7.1.0-beta' : '7.0.2');
-      const extension = extensions.getExtension('ftslang.ftslang-vscode');
-      assert(extension);
-      const installedPath = relative(
-        join(directory, 'extensions'),
-        extension.extensionPath,
-      );
-      assert(
-        !installedPath.startsWith(`..${sep}`),
-        `FTS must load from the installed VSIX: ${extension.extensionPath}`,
-      );
-      await extension.activate();
-      assert.equal(document.languageId, 'future-typescript');
-    });
-
-    if (mode === 'supported') {
-      context('when a loose FTS file uses the selected SDK', () => {
-        beforeEach(async () => {
-          await replace(document, source);
-        });
-        afterEach(async () => {
-          await replace(document, source);
-        });
-
-        it('provides hover, completion, navigation and a mapped type error', async () => {
-          await hover(document, new Position(0, 14), 'result: number');
-          await eventually(
-            () => languages.getDiagnostics(document.uri),
-            (diagnostics) => {
-              const error = diagnostics.find(
-                (diagnostic) => diagnostic.code === 2322,
-              );
-              assert(error);
-              assert.equal(document.getText(error.range), 'broken');
-            },
-          );
-          await eventually(
-            () =>
-              commands.executeCommand<(Location | LocationLink)[]>(
-                'vscode.executeDefinitionProvider',
-                document.uri,
-                new Position(1, 22),
-              ),
-            (locations) => {
-              assert(
-                locations?.some((location) => {
-                  const uri =
-                    'uri' in location ? location.uri : location.targetUri;
-                  const range =
-                    'range' in location
-                      ? location.range
-                      : location.targetSelectionRange;
-                  return (
-                    uri.toString() === document.uri.toString() &&
-                    document.getText(range) === 'result'
-                  );
-                }),
-              );
-            },
-          );
-          await replace(document, `${source}\n1 |> Ma`);
-          await eventually(
-            () =>
-              commands.executeCommand<CompletionList>(
-                'vscode.executeCompletionItemProvider',
-                document.uri,
-                document.positionAt(document.getText().length),
-              ),
-            (completion) => {
-              assert(
-                completion?.items.some(
-                  (item) =>
-                    (typeof item.label === 'string'
-                      ? item.label
-                      : item.label.label) === 'Math',
-                ),
-              );
-            },
-          );
-        });
-
-        it('removes and restores the diagnostic as the source changes', async () => {
-          await eventually(
-            () => languages.getDiagnostics(document.uri),
-            (items) => assert(items.some((item) => item.code === 2322)),
-          );
-          await replace(document, source.replace('"wrong"', '1'));
-          await eventually(
-            () => languages.getDiagnostics(document.uri),
-            (items) => assert.equal(items.length, 0),
-          );
-          await replace(document, source);
-          await eventually(
-            () => languages.getDiagnostics(document.uri),
-            (items) => assert(items.some((item) => item.code === 2322)),
-          );
-        });
-      });
-
-      context('when a configured consumer imports an FTS module', () => {
-        let consumer: TextDocument;
+  const tests = runTests({
+    files: [],
+    isolation: 'none',
+    setup() {
+      describe('installed FTS VSIX', () => {
         before(async () => {
-          consumer = await workspace.openTextDocument(
-            Uri.file(join(directory, 'consumer/src/index.ts')),
+          assert.equal(version, '1.145.2');
+          document = await workspace.openTextDocument(
+            Uri.file(join(directory, 'inferred/pipeline.fts')),
           );
-          await window.showTextDocument(consumer, { preview: false });
+          await window.showTextDocument(document, { preview: false });
+          const official = extensions.getExtension<ExtensionAPI>(
+            'TypeScriptTeam.native-preview',
+          );
+          assert(official);
+          assert.equal(official.packageJSON.version, '1.0.2');
+          api = await official.activate();
+          sdk = await initialized(api);
+          assert.equal(
+            sdk.version,
+            mode === 'supported' ? '7.1.0-beta' : '7.0.2',
+          );
+          const extension = extensions.getExtension('ftslang.ftslang-vscode');
+          assert(extension);
+          const installedPath = relative(
+            join(directory, 'extensions'),
+            extension.extensionPath,
+          );
+          assert(
+            !installedPath.startsWith(`..${sep}`),
+            `FTS must load from the installed VSIX: ${extension.extensionPath}`,
+          );
+          await extension.activate();
+          assert.equal(document.languageId, 'future-typescript');
         });
 
-        it('reports the imported type and navigates to the original FTS declaration', async () => {
-          await hover(consumer, new Position(0, 10), 'result: number');
-          await eventually(
-            () => languages.getDiagnostics(consumer.uri),
-            (items) => assert(items.some((item) => item.code === 2322)),
-          );
-          await eventually(
-            () =>
-              commands.executeCommand<(Location | LocationLink)[]>(
-                'vscode.executeDefinitionProvider',
-                consumer.uri,
-                new Position(0, 10),
-              ),
-            (locations) => {
-              assert(
-                locations?.some(
-                  (location) =>
-                    ('uri' in location ? location.uri : location.targetUri)
-                      .fsPath === join(directory, 'consumer/src/pipeline.fts'),
-                ),
+        if (mode === 'supported') {
+          context('when a loose FTS file uses the selected SDK', () => {
+            beforeEach(async () => {
+              await replace(document, source);
+            });
+            afterEach(async () => {
+              await replace(document, source);
+            });
+
+            it('provides hover, completion, navigation and a mapped type error', async () => {
+              await hover(document, new Position(0, 14), 'result: number');
+              await eventually(
+                () => languages.getDiagnostics(document.uri),
+                (diagnostics) => {
+                  const error = diagnostics.find(
+                    (diagnostic) => diagnostic.code === 2322,
+                  );
+                  assert(error);
+                  assert.equal(document.getText(error.range), 'broken');
+                },
               );
+              await eventually(
+                () =>
+                  commands.executeCommand<(Location | LocationLink)[]>(
+                    'vscode.executeDefinitionProvider',
+                    document.uri,
+                    new Position(1, 22),
+                  ),
+                (locations) => {
+                  assert(
+                    locations?.some((location) => {
+                      const uri =
+                        'uri' in location ? location.uri : location.targetUri;
+                      const range =
+                        'range' in location
+                          ? location.range
+                          : location.targetSelectionRange;
+                      return (
+                        uri.toString() === document.uri.toString() &&
+                        document.getText(range) === 'result'
+                      );
+                    }),
+                  );
+                },
+              );
+              await replace(document, `${source}\n1 |> Ma`);
+              await eventually(
+                () =>
+                  commands.executeCommand<CompletionList>(
+                    'vscode.executeCompletionItemProvider',
+                    document.uri,
+                    document.positionAt(document.getText().length),
+                  ),
+                (completion) => {
+                  assert(
+                    completion?.items.some(
+                      (item) =>
+                        (typeof item.label === 'string'
+                          ? item.label
+                          : item.label.label) === 'Math',
+                    ),
+                  );
+                },
+              );
+            });
+
+            it('removes and restores the diagnostic as the source changes', async () => {
+              await eventually(
+                () => languages.getDiagnostics(document.uri),
+                (items) => assert(items.some((item) => item.code === 2322)),
+              );
+              await replace(document, source.replace('"wrong"', '1'));
+              await eventually(
+                () => languages.getDiagnostics(document.uri),
+                (items) => assert.equal(items.length, 0),
+              );
+              await replace(document, source);
+              await eventually(
+                () => languages.getDiagnostics(document.uri),
+                (items) => assert(items.some((item) => item.code === 2322)),
+              );
+            });
+          });
+
+          context('when a configured consumer imports an FTS module', () => {
+            let consumer: TextDocument;
+            before(async () => {
+              consumer = await workspace.openTextDocument(
+                Uri.file(join(directory, 'consumer/src/index.ts')),
+              );
+              await window.showTextDocument(consumer, { preview: false });
+            });
+
+            it('reports the imported type and navigates to the original FTS declaration', async () => {
+              await hover(consumer, new Position(0, 10), 'result: number');
+              await eventually(
+                () => languages.getDiagnostics(consumer.uri),
+                (items) => assert(items.some((item) => item.code === 2322)),
+              );
+              await eventually(
+                () =>
+                  commands.executeCommand<(Location | LocationLink)[]>(
+                    'vscode.executeDefinitionProvider',
+                    consumer.uri,
+                    new Position(0, 10),
+                  ),
+                (locations) => {
+                  assert(
+                    locations?.some(
+                      (location) =>
+                        ('uri' in location ? location.uri : location.targetUri)
+                          .fsPath ===
+                        join(directory, 'consumer/src/pipeline.fts'),
+                    ),
+                  );
+                },
+              );
+            });
+          });
+
+          context('when the selected SDK moves to another installation', () => {
+            it('uses the new SDK for syntax recovery even after the former installation is removed', async () => {
+              const next = await selectSDK(
+                join(directory, 'SDK with spaces/node_modules/typescript'),
+              );
+              assert(next.isCurrent());
+              assert(sdk && !sdk.isCurrent());
+              sdk = next;
+              const previous = join(
+                directory,
+                'consumer/node_modules/typescript',
+              );
+              renameSync(previous, `${previous}.previous`);
+              try {
+                await replace(
+                  document,
+                  `${source}\nexport function parse<T>(value: T): T { return value |> ; }`,
+                );
+                await eventually(
+                  () => languages.getDiagnostics(document.uri),
+                  (items) => assert(items.some((item) => item.code === 1000)),
+                );
+                // Syntax recovery preserves exports but has no editable span map.
+                // Check editor hover again after the incomplete source is repaired.
+                await replace(document, source);
+                await hover(document, new Position(0, 14), 'result: number');
+              } finally {
+                renameSync(`${previous}.previous`, previous);
+                await replace(document, source);
+              }
+            });
+          });
+        } else {
+          context(
+            'when the official extension initially uses its unsupported default SDK',
+            () => {
+              it('keeps the language available and becomes functional after the user selects a supported SDK', async () => {
+                const config = workspace.getConfiguration('js/ts');
+                assert.equal(
+                  config.inspect('tsdk.path')?.globalValue,
+                  undefined,
+                );
+                assert.equal(document.languageId, 'future-typescript');
+                assert.equal(
+                  (
+                    await commands.executeCommand<Hover[]>(
+                      'vscode.executeHoverProvider',
+                      document.uri,
+                      new Position(0, 14),
+                    )
+                  )?.length ?? 0,
+                  0,
+                );
+                sdk = await selectSDK(
+                  join(directory, 'consumer/node_modules/typescript'),
+                );
+                await hover(document, new Position(0, 14), 'result: number');
+                await eventually(
+                  () => languages.getDiagnostics(document.uri),
+                  (items) => assert(items.some((item) => item.code === 2322)),
+                );
+              });
             },
           );
-        });
+        }
       });
-
-      context('when the selected SDK moves to another installation', () => {
-        it('uses the new SDK for syntax recovery even after the former installation is removed', async () => {
-          const next = await selectSDK(
-            join(directory, 'SDK with spaces/node_modules/typescript'),
-          );
-          assert(next.isCurrent());
-          assert(!sdk.isCurrent());
-          sdk = next;
-          const previous = join(directory, 'consumer/node_modules/typescript');
-          renameSync(previous, `${previous}.previous`);
-          try {
-            await replace(
-              document,
-              `${source}\nexport function parse<T>(value: T): T { return value |> ; }`,
-            );
-            await eventually(
-              () => languages.getDiagnostics(document.uri),
-              (items) => assert(items.some((item) => item.code === 1000)),
-            );
-            // Syntax recovery preserves exports but has no editable span map.
-            // Check editor hover again after the incomplete source is repaired.
-            await replace(document, source);
-            await hover(document, new Position(0, 14), 'result: number');
-          } finally {
-            renameSync(`${previous}.previous`, previous);
-            await replace(document, source);
-          }
-        });
-      });
-    } else {
-      context(
-        'when the official extension initially uses its unsupported default SDK',
-        () => {
-          it('keeps the language available and becomes functional after the user selects a supported SDK', async () => {
-            const config = workspace.getConfiguration('js/ts');
-            assert.equal(config.inspect('tsdk.path')?.globalValue, undefined);
-            assert.equal(document.languageId, 'future-typescript');
-            assert.equal(
-              (
-                await commands.executeCommand<Hover[]>(
-                  'vscode.executeHoverProvider',
-                  document.uri,
-                  new Position(0, 14),
-                )
-              )?.length ?? 0,
-              0,
-            );
-            sdk = await selectSDK(
-              join(directory, 'consumer/node_modules/typescript'),
-            );
-            await hover(document, new Position(0, 14), 'result: number');
-            await eventually(
-              () => languages.getDiagnostics(document.uri),
-              (items) => assert(items.some((item) => item.code === 2322)),
-            );
-          });
-        },
-      );
-    }
+    },
+    timeout: 60000,
   });
 
-  await new Promise<void>((resolve, reject) => {
-    const runner = mocha.run((failures) => {
-      writeFileSync(
-        join(directory, `${mode}.json`),
-        JSON.stringify(
-          {
-            vscode: version,
-            node: process.versions.node,
-            platform: process.platform,
-            arch: process.arch,
-            sdk: sdk?.version,
-            sdkPath: sdk?.packageJsonPath,
-            failures,
-            observations,
-          },
-          null,
-          2,
-        ),
-      );
-      if (failures)
-        reject(
-          new Error(`${failures} installed VSIX acceptance test(s) failed`),
-        );
-      else resolve();
-    });
-    runner.on('pass', (test) => observations.push({ name: test.fullTitle() }));
-    runner.on('fail', (test, error) =>
+  let failures = 0;
+  let completed = false;
+  for await (const event of tests) {
+    if (event.type !== 'test:pass' && event.type !== 'test:fail') continue;
+    if (event.type === 'test:fail') {
+      if (event.data.details.type === 'test') failures++;
       observations.push({
-        name: test.fullTitle(),
-        error: error.stack ?? error.message,
-      }),
-    );
-  });
+        name: event.data.name,
+        error: inspect(event.data.details.error),
+      });
+    } else if (event.data.details.type === 'test')
+      observations.push({ name: event.data.name });
+    // Extension Host stays alive, so the stream's process-exit summary cannot
+    // complete while VS Code awaits this function. The outer suite's result
+    // arrives after all its tests and hooks have finished.
+    if (event.data.nesting === 0) {
+      if (event.type === 'test:fail' && failures === 0) failures = 1;
+      completed = true;
+      break;
+    }
+  }
+  writeFileSync(
+    join(directory, `${mode}.json`),
+    JSON.stringify(
+      {
+        vscode: version,
+        node: process.versions.node,
+        platform: process.platform,
+        arch: process.arch,
+        sdk: sdk?.version,
+        sdkPath: sdk?.packageJsonPath,
+        failures,
+        observations,
+      },
+      null,
+      2,
+    ),
+  );
+  assert(
+    completed && observations.length > 0,
+    'No installed VSIX tests completed',
+  );
+  if (failures)
+    throw new Error(`${failures} installed VSIX acceptance test(s) failed`);
 }
