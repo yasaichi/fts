@@ -1,0 +1,9 @@
+{
+  "name": "fts-e2e-driver",
+  "version": "0.0.0",
+  "engines": {
+    "vscode": "^1.145.2"
+  },
+  "private": true,
+  "publisher": "ftslang"
+}

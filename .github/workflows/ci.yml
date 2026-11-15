@@ -18,6 +18,8 @@ jobs:
     name: Verify
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      FTS_VSCODE_VERSION: '1.145.2'
 
     steps:
       - name: Check out repository
@@ -37,5 +39,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set up VS Code
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { appendFileSync } from 'node:fs';
+          import { dirname, join } from 'node:path';
+          import { downloadAndUnzipVSCode } from '@vscode/test-electron';
+
+          const executable = await downloadAndUnzipVSCode(process.env.FTS_VSCODE_VERSION);
+          const sandbox = join(dirname(executable), 'chrome-sandbox');
+          execFileSync('sudo', ['chown', 'root:root', sandbox]);
+          execFileSync('sudo', ['chmod', '4755', sandbox]);
+          appendFileSync(process.env.GITHUB_ENV, `FTS_VSCODE_EXECUTABLE=${executable}\n`);
+          NODE
+
       - name: Verify
-        run: npm run verify
+        run: xvfb-run -a npm run verify

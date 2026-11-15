@@ -1,4 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
-  "include": ["npm.test.ts", "vitest.config.ts"]
+  "include": ["*.ts", "vscode/*.ts"],
+  "compilerOptions": {
+    "types": ["node", "vscode"]
+  }
 }

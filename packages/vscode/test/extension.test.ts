@@ -1,6 +1,9 @@
-import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { ContentMapperContribution } from 'typescript/vscode';
+import type {
+  ContentMapperContribution,
+  ExtensionAPI,
+  TypeScriptSDK,
+} from 'typescript/vscode';
 import {
   afterEach,
   beforeEach,
@@ -15,8 +18,13 @@ import type { ExtensionContext } from 'vscode';
 const mocks = vi.hoisted(() => ({
   activate: vi.fn<() => Promise<unknown>>(),
   dispose: vi.fn<() => void>(),
+  disposeSDKListener: vi.fn<() => void>(),
+  executeCommand: vi.fn<(command: string) => Promise<unknown>>(),
   getExtension: vi.fn<(id: string) => unknown>(),
   notifyExtensionsChanged: vi.fn<() => unknown>(),
+  notifySDKInitialized: vi.fn<(sdk: TypeScriptSDK) => void>(),
+  onLanguageServerInitialized:
+    vi.fn<ExtensionAPI['onLanguageServerInitialized']>(),
   registerContentMappers:
     vi.fn<
       (
@@ -24,6 +32,8 @@ const mocks = vi.hoisted(() => ({
         contributions: readonly ContentMapperContribution[],
       ) => { dispose: () => void }
     >(),
+  showWarningMessage:
+    vi.fn<(...args: string[]) => Promise<string | undefined>>(),
 }));
 vi.mock('vscode', () => ({
   extensions: {
@@ -34,6 +44,8 @@ vi.mock('vscode', () => ({
     },
   },
   Uri: { file: (fsPath: string) => ({ scheme: 'file', fsPath }) },
+  commands: { executeCommand: mocks.executeCommand },
+  window: { showWarningMessage: mocks.showWarningMessage },
 }));
 
 import { activate } from '../src/extension.js';
@@ -47,8 +59,29 @@ function findNativeExtension(id: string) {
 
 describe('activate(context)', () => {
   let extensionContext: ExtensionContext;
+  let sdk: TypeScriptSDK;
+  const api = {
+    onLanguageServerInitialized: mocks.onLanguageServerInitialized,
+    registerContentMappers: mocks.registerContentMappers,
+  };
 
   beforeEach(() => {
+    sdk = {
+      version: '7.1.0-beta',
+      packageJsonPath: '/selected SDK/node_modules/typescript/package.json',
+      isCurrent: () => true,
+      importModule: vi.fn<TypeScriptSDK['importModule']>(),
+      initializeAPIConnection:
+        vi.fn<TypeScriptSDK['initializeAPIConnection']>(),
+    };
+    mocks.showWarningMessage.mockResolvedValue(undefined);
+    mocks.onLanguageServerInitialized.mockImplementation(
+      (listener: (sdk: TypeScriptSDK) => void) => {
+        mocks.notifySDKInitialized.mockImplementation(listener);
+        listener(sdk);
+        return { dispose: mocks.disposeSDKListener };
+      },
+    );
     extensionContext = {
       extension: { id: 'test.ftslang-vscode' },
       extensionUri: { fsPath: fileURLToPath(new URL('../', import.meta.url)) },
@@ -61,9 +94,7 @@ describe('activate(context)', () => {
   context('when the native TypeScript extension is available', () => {
     beforeEach(() => {
       mocks.getExtension.mockImplementation(findNativeExtension);
-      mocks.activate.mockResolvedValue({
-        registerContentMappers: mocks.registerContentMappers,
-      });
+      mocks.activate.mockResolvedValue(api);
       mocks.registerContentMappers.mockReturnValue({ dispose: mocks.dispose });
     });
 
@@ -84,25 +115,164 @@ describe('activate(context)', () => {
                   dynamicConfig: false,
                   cwd: {
                     scheme: 'file',
-                    fsPath: expect.stringContaining('/content-mapper'),
+                    fsPath: extensionContext.extensionUri.fsPath,
                   },
                   exec: [
                     process.execPath,
                     fileURLToPath(
-                      import.meta.resolve('@ftslang/content-mapper/mapper'),
+                      new URL('../dist/mapper.mjs', import.meta.url),
                     ),
+                    sdk.packageJsonPath,
                   ],
                 },
               },
             },
           ],
         );
-        const contribution = mocks.registerContentMappers.mock.lastCall?.[1][0];
+      });
+    });
+
+    context('when the SDK is unsupported', () => {
+      beforeEach(() => {
+        sdk = { ...sdk, version: '7.0.2' };
+      });
+
+      it('explains the required SDK without registering a mapper or changing settings', async () => {
+        await activate(extensionContext);
+        expect(mocks.registerContentMappers).not.toHaveBeenCalled();
+        expect(mocks.showWarningMessage).toHaveBeenCalledExactlyOnceWith(
+          expect.stringContaining('FTS requires TypeScript 7.1.0-beta'),
+          'Select TypeScript Version',
+        );
+        expect(mocks.executeCommand).not.toHaveBeenCalled();
+      });
+
+      it('does not repeat the same warning on a server restart', async () => {
+        await activate(extensionContext);
+        mocks.notifySDKInitialized(sdk);
+        expect(mocks.showWarningMessage).toHaveBeenCalledOnce();
+      });
+
+      context('when the user selects the setup action', () => {
+        beforeEach(() => {
+          mocks.showWarningMessage.mockResolvedValue(
+            'Select TypeScript Version',
+          );
+        });
+
+        it('opens the official version picker', async () => {
+          await activate(extensionContext);
+          expect(mocks.executeCommand).toHaveBeenCalledExactlyOnceWith(
+            'typescript.native-preview.selectVersion',
+          );
+        });
+      });
+
+      context('when a supported SDK is selected later', () => {
+        it('registers the mapper for that SDK', async () => {
+          await activate(extensionContext);
+          expect(mocks.registerContentMappers).not.toHaveBeenCalled();
+          mocks.notifySDKInitialized({ ...sdk, version: '7.1.0-beta' });
+          expect(mocks.registerContentMappers).toHaveBeenCalledOnce();
+        });
+      });
+    });
+
+    context('when the SDK has no matching API package', () => {
+      beforeEach(() => {
+        sdk = { ...sdk, packageJsonPath: undefined };
+      });
+
+      it('requests a full SDK instead of starting a broken mapper', async () => {
+        await activate(extensionContext);
+        expect(mocks.registerContentMappers).not.toHaveBeenCalled();
+        expect(mocks.showWarningMessage).toHaveBeenCalledWith(
+          expect.stringContaining('JavaScript API package'),
+          'Select TypeScript Version',
+        );
+      });
+    });
+
+    context('when the selected SDK is newer than the certified preview', () => {
+      beforeEach(() => {
+        sdk = { ...sdk, version: '7.1.0' };
+      });
+
+      it('requests the tested version instead of assuming API compatibility', async () => {
+        await activate(extensionContext);
+        expect(mocks.registerContentMappers).not.toHaveBeenCalled();
+        expect(mocks.showWarningMessage).toHaveBeenCalledWith(
+          expect.stringContaining('Selected: 7.1.0.'),
+          'Select TypeScript Version',
+        );
+      });
+    });
+
+    context('when the official extension does not expose the SDK API', () => {
+      beforeEach(() => {
+        mocks.activate.mockResolvedValue({
+          registerContentMappers: mocks.registerContentMappers,
+        });
+      });
+
+      it('explains that the TypeScript 7 extension needs updating', async () => {
+        await activate(extensionContext);
+        expect(mocks.registerContentMappers).not.toHaveBeenCalled();
+        expect(mocks.showWarningMessage).toHaveBeenCalledWith(
+          expect.stringContaining('Update the TypeScript 7 extension'),
+          'Select TypeScript Version',
+        );
+      });
+    });
+
+    context('when the initialization belongs to an obsolete SDK', () => {
+      beforeEach(() => {
+        sdk.isCurrent = () => false;
+      });
+
+      it('does not register a mapper for it', async () => {
+        await activate(extensionContext);
+        expect(mocks.registerContentMappers).not.toHaveBeenCalled();
+      });
+    });
+
+    context('when the SDK changes after registration', () => {
+      it('keeps the current mapper when an obsolete initialization arrives', async () => {
+        await activate(extensionContext);
+        mocks.notifySDKInitialized({ ...sdk, isCurrent: () => false });
+        expect(mocks.dispose).not.toHaveBeenCalled();
+        expect(mocks.registerContentMappers).toHaveBeenCalledOnce();
+      });
+      it('replaces the registration with the newly selected SDK', async () => {
+        await activate(extensionContext);
+        expect(mocks.dispose).not.toHaveBeenCalled();
+        mocks.notifySDKInitialized({
+          ...sdk,
+          packageJsonPath: '/another SDK/typescript/package.json',
+        });
+        expect(mocks.dispose).toHaveBeenCalledOnce();
         expect(
-          existsSync(
-            contribution?.inferredProjectContribution?.manifest.exec[1] ?? '',
+          mocks.registerContentMappers.mock.lastCall?.[1][0]?.inferredProjectContribution?.manifest.exec.at(
+            -1,
           ),
-        ).toBe(true);
+        ).toBe('/another SDK/typescript/package.json');
+      });
+
+      it('stops contributing a mapper when the new SDK is unsupported', async () => {
+        await activate(extensionContext);
+        mocks.notifySDKInitialized({ ...sdk, version: '7.0.2' });
+        expect(mocks.dispose).toHaveBeenCalledOnce();
+        expect(mocks.registerContentMappers).toHaveBeenCalledOnce();
+        expect(mocks.showWarningMessage).toHaveBeenCalledOnce();
+      });
+    });
+
+    context('when the same SDK is restarted', () => {
+      it('replaces the mapper so SDK module caches cannot survive the restart', async () => {
+        await activate(extensionContext);
+        mocks.notifySDKInitialized(sdk);
+        expect(mocks.dispose).toHaveBeenCalledOnce();
+        expect(mocks.registerContentMappers).toHaveBeenCalledTimes(2);
       });
     });
 
@@ -126,6 +296,7 @@ describe('activate(context)', () => {
             subscription.dispose(),
           );
           expect(mocks.dispose).toHaveBeenCalledOnce();
+          expect(mocks.disposeSDKListener).toHaveBeenCalledOnce();
         });
       });
 
@@ -162,9 +333,7 @@ describe('activate(context)', () => {
 
           mocks.getExtension.mockReturnValue(undefined);
           await mocks.notifyExtensionsChanged();
-          pending.resolve({
-            registerContentMappers: mocks.registerContentMappers,
-          });
+          pending.resolve(api);
           await activating;
           expect(mocks.registerContentMappers).not.toHaveBeenCalled();
         });
@@ -178,9 +347,7 @@ describe('activate(context)', () => {
           extensionContext.subscriptions.forEach((subscription) =>
             subscription.dispose(),
           );
-          pending.resolve({
-            registerContentMappers: mocks.registerContentMappers,
-          });
+          pending.resolve(api);
           await activating;
           expect(mocks.registerContentMappers).not.toHaveBeenCalled();
         });
@@ -192,9 +359,7 @@ describe('activate(context)', () => {
           expect(mocks.registerContentMappers).not.toHaveBeenCalled();
 
           const changing = mocks.notifyExtensionsChanged();
-          pending.resolve({
-            registerContentMappers: mocks.registerContentMappers,
-          });
+          pending.resolve(api);
           await Promise.all([activating, changing]);
           expect(mocks.registerContentMappers).toHaveBeenCalledOnce();
         });
@@ -217,9 +382,7 @@ describe('activate(context)', () => {
     context('when the native extension becomes available later', () => {
       beforeEach(async () => {
         await activate(extensionContext);
-        mocks.activate.mockResolvedValue({
-          registerContentMappers: mocks.registerContentMappers,
-        });
+        mocks.activate.mockResolvedValue(api);
         mocks.registerContentMappers.mockReturnValue({
           dispose: mocks.dispose,
         });

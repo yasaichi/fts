@@ -4,7 +4,7 @@
     "perf": "error",
     "suspicious": "error"
   },
-  "ignorePatterns": ["**/dist/**", "**/*.fts"],
+  "ignorePatterns": [".vscode-test/**", "**/dist/**", "**/*.fts"],
   "options": {
     "reportUnusedDisableDirectives": "error"
   },
