@@ -3,7 +3,7 @@
   "description": "TypeScript content mapper and proposal lowering for FTS",
   "version": "0.0.1",
   "dependencies": {
-    "@babel/core": "8.0.1",
+    "@babel/core": "8.1.0",
     "@babel/plugin-proposal-pipeline-operator": "8.0.1",
     "@jridgewell/trace-mapping": "0.3.31",
     "typescript": "7.1.0-beta",

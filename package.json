@@ -5,14 +5,14 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
     "@jridgewell/trace-mapping": "0.3.31",
-    "@types/node": "26.2.0",
+    "@types/node": "26.6.6",
     "@vscode/test-electron": "3.1.0",
     "@vscode/vsce": "4.1.0",
     "esbuild": "0.28.2",
-    "oxlint": "1.78.0",
+    "oxlint": "1.92.0",
     "prettier": "3.9.10",
     "typescript": "7.1.0-beta",
-    "vitest": "4.1.12",
+    "vitest": "5.1.0",
     "wireit": "0.15.0"
   },
   "engines": {
