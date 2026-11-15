@@ -24,6 +24,7 @@ const repository = realpathSync(fileURLToPath(new URL('../', import.meta.url)));
 // macOS's IPC socket path limit requires a short user-data directory.
 const directory = realpathSync(mkdtempSync('/tmp/fts-vsix-'));
 const extensions = join(directory, 'extensions');
+const vscodeVersion = process.env.FTS_VSCODE_VERSION ?? '1.145.2';
 const consumer = join(directory, 'consumer');
 const npm = process.env.npm_execpath;
 assert(npm, 'Run acceptance through npm run test:e2e:vscode');
@@ -163,7 +164,7 @@ try {
     process.env.FTS_VSCODE_EXECUTABLE ??
     (await downloadAndUnzipVSCode({
       cachePath: join(repository, '.vscode-test'),
-      version: '1.145.2',
+      version: vscodeVersion,
     }));
   const [cli, ...cliArgs] = resolveCliArgsFromVSCodeExecutablePath(executable, {
     reuseMachineInstall: true,
@@ -208,13 +209,14 @@ try {
         `--user-data-dir=${userData}`,
         `--extensions-dir=${extensions}`,
         `--extensionDevelopmentPath=${join(repository, 'e2e/driver')}`,
-        `--extensionTestsPath=${join(repository, 'e2e/dist/vscode.test.cjs')}`,
+        `--extensionTestsPath=${join(repository, 'e2e/dist/index.cjs')}`,
         '--skip-welcome',
         '--skip-release-notes',
         '--new-window',
       ],
       directory,
       {
+        FTS_VSCODE_VERSION: vscodeVersion,
         FTS_VSIX_ACCEPTANCE_DIRECTORY: directory,
         FTS_VSIX_ACCEPTANCE_MODE: mode,
       },

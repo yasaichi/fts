@@ -1,13 +1,9 @@
 {
   "name": "fts-e2e-driver",
   "version": "0.0.0",
-  "activationEvents": [
-    "*"
-  ],
   "engines": {
     "vscode": "^1.145.2"
   },
-  "main": "./extension.cjs",
   "private": true,
   "publisher": "ftslang"
 }

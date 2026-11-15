@@ -2,7 +2,6 @@ name: CI
 
 on:
   pull_request:
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -18,7 +17,9 @@ jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    env:
+      FTS_VSCODE_VERSION: '1.145.2'
 
     steps:
       - name: Check out repository
@@ -46,7 +47,7 @@ jobs:
           import { dirname, join } from 'node:path';
           import { downloadAndUnzipVSCode } from '@vscode/test-electron';
 
-          const executable = await downloadAndUnzipVSCode('1.145.2');
+          const executable = await downloadAndUnzipVSCode(process.env.FTS_VSCODE_VERSION);
           const sandbox = join(dirname(executable), 'chrome-sandbox');
           execFileSync('sudo', ['chown', 'root:root', sandbox]);
           execFileSync('sudo', ['chmod', '4755', sandbox]);

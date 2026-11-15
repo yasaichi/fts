@@ -48,9 +48,9 @@
       ]
     },
     "build:editor-tests": {
-      "command": "esbuild e2e/vscode.test.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outfile=e2e/dist/vscode.test.cjs",
+      "command": "esbuild e2e/vscode/index.ts e2e/vscode/installed-vsix.test.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --external:vscode --outdir=e2e/dist --out-extension:.js=.cjs",
       "files": [
-        "e2e/vscode.test.ts"
+        "e2e/vscode/*.ts"
       ],
       "output": [
         "e2e/dist/**"
