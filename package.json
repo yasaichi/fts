@@ -3,7 +3,7 @@
   "description": "Proposal-aware TypeScript tooling experiments",
   "version": "0.0.1",
   "devDependencies": {
-    "@biomejs/biome": "2.5.8",
+    "@biomejs/biome": "2.6.7",
     "@jridgewell/trace-mapping": "0.3.31",
     "@types/node": "26.6.6",
     "esbuild": "0.28.2",
